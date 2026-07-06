@@ -1,37 +1,169 @@
+/* ~/.config/rofi/config.rasi */
+
+/* -----------------------------------------------------------------------------
+ * Theme include
+ * -----------------------------------------------------------------------------
+ * Keep generated colors/theme in your central custom theme file.
+ */
+
 @import "~/.config/custom-themes/rofi-theme.rasi"
 
+
+/* -----------------------------------------------------------------------------
+ * Runtime configuration
+ * -----------------------------------------------------------------------------
+ */
+
 configuration {
-    modi: "drun,run,window";
-    show-icons: true;
+    /* -------------------------------------------------------------------------
+     * Modes
+     * -------------------------------------------------------------------------
+     * Main setup: one combined launcher containing:
+     *   - window: switch existing windows
+     *   - drun:   launch desktop applications
+     *   - run:    run commands
+     *
+     * Alternative old/current separated setup:
+     *   modes: [ drun, run, window ];
+     */
+
+    modes: [ combi ];
+    combi-modes: [ window, drun, run ];
+
+    display-combi: "Search";
+    display-window: "Windows";
     display-drun: "Apps";
     display-run: "Run";
-    display-window: "Windows";
+
+    combi-display-format: "{mode}  {text}";
+
+    /* -------------------------------------------------------------------------
+     * General behavior
+     * -------------------------------------------------------------------------
+     */
+
+    show-icons: true;
     font: "JetBrainsMono Nerd Font 11";
+    terminal: "alacritty";
+
+    /* Mouse-pointer monitor. Official default is -5. */
+    monitor: -5;
+
+    /* Center placement. */
+    location: 0;
+
+    /* Keep wrap-around selection. */
+    cycle: true;
+
+    /* Keep default normal matching and sorting. */
+    matching: "normal";
+    sort: true;
+
+    /* Keep history enabled. */
+    disable-history: false;
+    max-history-size: 25;
+
+    /* Close when clicking outside. */
+    click-to-exit: true;
+
+    /* Hover selects row, single click accepts. */
+    hover-select: true;
+    me-select-entry: "";
+    me-accept-entry: "MousePrimary";
+
+    /* -------------------------------------------------------------------------
+     * DRUN
+     * -------------------------------------------------------------------------
+     */
+
+    drun-match-fields: "name,generic,exec,categories,keywords";
+    drun-display-format: "{name} <span weight='light' size='small'><i>({generic})</i></span>";
+    drun-show-actions: false;
+
+    /* -------------------------------------------------------------------------
+     * Window switcher
+     * -------------------------------------------------------------------------
+     */
+
+    window-match-fields: "all";
+
+    window {
+        hide-active-window: true;
+        close-on-delete: true;
+        prefer-icon-theme: false;
+    }
+
+    /* -------------------------------------------------------------------------
+     * Keybindings
+     * -------------------------------------------------------------------------
+     * Ctrl+A clears input.
+     * Home/KP_Home stay untouched for first row navigation.
+     */
+
+    kb-clear-line: "Control+a,Control+w";
+
+    /* Remove default Ctrl+A from "move to beginning" to avoid conflict. */
+    kb-move-front: "";
+
+    /* Keep normal row navigation defaults:
+     *   kb-row-first = Home,KP_Home
+     *   kb-row-last  = End,KP_End
+     */
 }
+
+
+/* -----------------------------------------------------------------------------
+ * Global theme defaults
+ * -----------------------------------------------------------------------------
+ */
 
 * {
     border-radius: 12px;
 }
 
+
+/* -----------------------------------------------------------------------------
+ * Window
+ * -----------------------------------------------------------------------------
+ */
+
 window {
-    width: 720px;
+    width: 37%;
+    padding: 12px;
+
     background-color: @bg;
+
     border: 1px;
     border-color: @border;
-    padding: 12px;
+
+    border-radius: 12px;
 }
+
+
+/* -----------------------------------------------------------------------------
+ * Main layout
+ * -----------------------------------------------------------------------------
+ */
 
 mainbox {
-    background-color: @bg;
     spacing: 10px;
+    background-color: @bg;
 }
 
+
+/* -----------------------------------------------------------------------------
+ * Input
+ * -----------------------------------------------------------------------------
+ */
+
 inputbar {
+    spacing: 8px;
+    padding: 10px 12px;
+
     background-color: @surface;
     text-color: @fg;
+
     border-radius: 12px;
-    padding: 10px 12px;
-    spacing: 8px;
 }
 
 prompt {
@@ -43,19 +175,39 @@ entry {
     placeholder-color: @fg-muted;
 }
 
+
+/* -----------------------------------------------------------------------------
+ * Results list
+ * -----------------------------------------------------------------------------
+ */
+
 listview {
-    background-color: @bg;
-    spacing: 4px;
     lines: 10;
     columns: 1;
+
+    spacing: 4px;
     fixed-height: false;
+
+    background-color: @bg;
+
+    border: 0px;
+    border-color: transparent;
+    outline: none;
 }
 
+
+/* -----------------------------------------------------------------------------
+ * Result rows
+ * -----------------------------------------------------------------------------
+ */
+
 element {
+    padding: 8px 10px;
+
     background-color: transparent;
     text-color: @fg;
+
     border-radius: 10px;
-    padding: 8px 10px;
 }
 
 element normal.normal {
@@ -93,21 +245,22 @@ element-text {
     text-color: inherit;
 }
 
+
+/* -----------------------------------------------------------------------------
+ * Messages
+ * -----------------------------------------------------------------------------
+ */
+
 message {
+    padding: 8px;
+
     background-color: @surface;
     text-color: @fg;
+
     border-radius: 12px;
-    padding: 8px;
 }
 
 textbox {
     background-color: transparent;
     text-color: @fg;
-}
-
-
-listview {
-    border: 0px;
-    border-color: transparent;
-    outline: none;
 }

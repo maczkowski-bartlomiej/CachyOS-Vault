@@ -34,6 +34,17 @@ run_theme_builders() {
 
 install_i3() {
     copy_file "$REPO_ROOT/custom-configs/I3/config" "$HOME/.config/i3/config"
+    install_i3_scripts
+}
+
+install_i3_scripts() {
+    local script src
+    ensure_dir "$HOME/.config/i3/scripts"
+    for src in "$REPO_ROOT"/custom-configs/I3/scripts/*; do
+        [[ -f "$src" ]] || continue
+        script="$(basename -- "$src")"
+        copy_executable "$src" "$HOME/.config/i3/scripts/$script"
+    done
 }
 
 install_rofi() {
@@ -80,8 +91,11 @@ apply_cursor_hardening() {
     if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
         log_info "Skipped xrdb merge because VAULT_SKIP_RELOAD is set"
     elif command_exists xrdb; then
-        xrdb -merge "$HOME/.Xresources"
-        log_ok "Merged $HOME/.Xresources"
+        if xrdb -merge "$HOME/.Xresources"; then
+            log_ok "Merged $HOME/.Xresources"
+        else
+            log_warn "xrdb merge failed; continuing"
+        fi
     else
         log_warn "xrdb not found; skipped Xresources merge"
     fi
@@ -101,11 +115,22 @@ run_nwg_look() {
 reload_i3() {
     if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
         log_info "Skipped i3 reload because VAULT_SKIP_RELOAD is set"
+        return 1
     elif command_exists i3-msg; then
-        i3-msg reload >/dev/null
-        log_ok "Reloaded i3"
+        if command_exists timeout; then
+            if timeout 5s i3-msg reload >/dev/null; then
+                log_ok "Reloaded i3"
+                return 0
+            fi
+        elif i3-msg reload >/dev/null; then
+            log_ok "Reloaded i3"
+            return 0
+        fi
+        log_warn "i3 reload did not complete cleanly; continuing"
+        return 1
     else
         log_warn "i3-msg not found; skipped i3 reload"
+        return 1
     fi
 }
 
@@ -113,8 +138,17 @@ reload_polybar() {
     if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
         log_info "Skipped Polybar reload because VAULT_SKIP_RELOAD is set"
     elif [[ -x "$HOME/.config/polybar/launch.sh" ]] && command_exists polybar; then
-        "$HOME/.config/polybar/launch.sh"
-        log_ok "Reloaded Polybar"
+        if command_exists timeout; then
+            if timeout 10s "$HOME/.config/polybar/launch.sh"; then
+                log_ok "Reloaded Polybar"
+            else
+                log_warn "Polybar reload did not complete cleanly; continuing"
+            fi
+        elif "$HOME/.config/polybar/launch.sh"; then
+            log_ok "Reloaded Polybar"
+        else
+            log_warn "Polybar reload failed; continuing"
+        fi
     else
         log_warn "Polybar reload skipped; polybar or launch script unavailable"
     fi
@@ -128,6 +162,7 @@ install_app_config() {
     local name="${1:?config name required}"
     case "$name" in
         i3) install_i3 ;;
+        i3-scripts) install_i3_scripts ;;
         rofi) install_rofi ;;
         polybar) install_polybar ;;
         alacritty) install_alacritty ;;
@@ -157,7 +192,10 @@ install_all_configs() {
     install_nwg_look_config
     install_wallpaper
     apply_cursor_hardening
-    reload_i3
-    reload_polybar
+    if reload_i3; then
+        log_info "Skipped direct Polybar reload because i3 reload runs Polybar launch"
+    else
+        reload_polybar
+    fi
     reload_picom_if_safe
 }

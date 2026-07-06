@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pipe="/tmp/xobpipe"
+lock="/tmp/xob-volume-listener.lock"
+
+exec 9>"$lock"
+flock -n 9 || exit 0
+
+rm -f "$pipe"
+mkfifo "$pipe"
+
+trap 'rm -f "$pipe"' EXIT
+
+tail -f "$pipe" | xob -t 2170

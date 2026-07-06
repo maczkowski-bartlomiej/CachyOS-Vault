@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dir="${1:-}"
+
+case "$dir" in
+    left|right|up|down) ;;
+    *) exit 2 ;;
+esac
+
+i3-msg "focus $dir" >/dev/null
+sleep 0.02
+
+coords="$(
+    i3-msg -t get_tree | jq -r '
+        recurse(.nodes[]?, .floating_nodes[]?)
+        | select(.focused == true)
+        | .rect
+        | "\((.x + (.width / 2)) | floor) \((.y + (.height / 2)) | floor)"
+    ' | head -n1
+)"
+
+[ -n "$coords" ] || exit 0
+
+xdotool mousemove $coords

@@ -1,4 +1,79 @@
 {
+    "autoclose": false,
+    "autoindent": true,
+    "autosave": 0,
+    "autosu": false,
+
+    "backup": true,
+    "backupdir": "",
+    "basename": true,
+
+    "clipboard": "external",
+    "colorcolumn": 0,
     "colorscheme": "orchis-dark",
-    "cursorline": false
+    "cursorline": false,
+
+    "diff": true,
+    "diffgutter": true,
+
+    "encoding": "utf-8",
+    "eofnewline": true,
+    "fileformat": "unix",
+    "ftoptions": true,
+
+    "hlsearch": false,
+    "hltrailingws": true,
+
+    "ignorecase": true,
+    "incsearch": true,
+    "indentchar": " ",
+
+    "linter": true,
+    "matchbrace": true,
+    "matchbraceleft": true,
+    "matchbracestyle": "highlight",
+    "mkparents": true,
+    "mouse": true,
+    "multiopen": "tab",
+
+    "parsecursor": false,
+    "permbackup": false,
+
+    "reload": "prompt",
+    "relativeruler": false,
+    "rmtrailingws": true,
+    "ruler": true,
+
+    "savecursor": true,
+    "savehistory": true,
+    "saveundo": true,
+
+    "scrollbar": true,
+    "scrollbarchar": "|",
+    "scrollmargin": 3,
+    "scrollspeed": 2,
+
+    "showchars": "",
+    "smartpaste": true,
+    "softwrap": true,
+    "splitbottom": true,
+    "splitright": true,
+
+    "status": true,
+    "statusline": true,
+    "statusformatl": "$(filename) $(modified)$(overwrite) ($(line),$(col)) | ft:$(opt:filetype) | $(opt:fileformat) | $(opt:encoding)",
+    "statusformatr": "$(bind:ToggleKeyMenu): bindings | $(bind:ToggleHelp): help",
+
+    "sucmd": "sudo",
+    "syntax": true,
+
+    "tabmovement": false,
+    "tabreverse": false,
+    "tabsize": 4,
+    "tabstospaces": false,
+
+    "truecolor": "auto",
+    "useprimary": true,
+    "wordwrap": true,
+    "xterm": false
 }
