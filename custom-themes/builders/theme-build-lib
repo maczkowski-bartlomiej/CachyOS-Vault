@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd)}"
+
+# shellcheck source=../../scripts/lib/vault-lib.sh
+source "$REPO_ROOT/scripts/lib/vault-lib.sh"
+
+PALETTE_FILE="${PALETTE_FILE:-$REPO_ROOT/custom-themes/color-palette/orchis-dark-palette.sh}"
+THEME_OUTPUT_DIR="${THEME_OUTPUT_DIR:-$HOME/.config/custom-themes}"
+
+load_palette() {
+    require_file "$PALETTE_FILE"
+    # shellcheck source=/dev/null
+    source "$PALETTE_FILE"
+}
+
+require_palette_vars() {
+    local var
+    for var in \
+        BG BG_ALT SURFACE SURFACE_2 SURFACE_3 \
+        FG FG_STRONG FG_DIM FG_MUTED FG_DISABLED \
+        BORDER BORDER_SOFT SHADOW \
+        ACCENT ACCENT_HOVER ACCENT_ACTIVE ACCENT_DIM \
+        SUCCESS WARNING ERROR URGENT \
+        BLACK BLACK_BRIGHT RED RED_BRIGHT GREEN GREEN_BRIGHT \
+        YELLOW YELLOW_BRIGHT ORANGE BLUE BLUE_BRIGHT \
+        MAGENTA MAGENTA_BRIGHT CYAN CYAN_BRIGHT WHITE WHITE_BRIGHT \
+        LIME PRIMARY SECONDARY ALERT
+    do
+        [[ -n "${!var:-}" ]] || die "Palette variable missing: $var"
+    done
+}
+
+ensure_theme_output_dir() {
+    ensure_dir "$THEME_OUTPUT_DIR"
+}
+
+init_theme_builder() {
+    load_palette
+    require_palette_vars
+    ensure_theme_output_dir
+}

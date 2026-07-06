@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+
+# shellcheck source=../../scripts/lib/vault-lib.sh
+source "$REPO_ROOT/scripts/lib/vault-lib.sh"
+
+builders=(
+    theme-build-i3
+    theme-build-rofi
+    theme-build-polybar
+    theme-build-alacritty
+    theme-build-micro
+)
+
+for builder in "${builders[@]}"; do
+    log_info "Running $builder"
+    "$SCRIPT_DIR/$builder"
+done
+
+log_ok "Generated all theme files in ${THEME_OUTPUT_DIR:-$HOME/.config/custom-themes}"
