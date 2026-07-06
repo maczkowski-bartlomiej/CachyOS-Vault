@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export VAULT_SKIP_NWG_LOOK=1
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/install-lib.sh
+source "$SCRIPT_DIR/lib/install-lib.sh"
+
+run_theme_builders
+install_all_configs
+run_nwg_look

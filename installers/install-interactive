@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/install-lib.sh
+source "$SCRIPT_DIR/lib/install-lib.sh"
+
+declare -A CONFIG_GROUPS=(
+    [1]=i3
+    [2]=rofi
+    [3]=polybar
+    [4]=alacritty
+    [5]=micro
+    [6]=picom
+    [7]=nwg-look
+    [8]=cursor-hardening
+    [9]=wallpaper
+)
+
+cat <<'MENU'
+Available configs:
+  1) i3
+  2) rofi
+  3) polybar
+  4) alacritty
+  5) micro
+  6) picom
+  7) nwg-look
+  8) cursor-hardening
+  9) wallpaper
+  all) all configs
+  q) quit
+
+Enter numbers separated by spaces:
+MENU
+
+read -r -a selections
+
+if [[ "${#selections[@]}" -eq 0 ]]; then
+    die "No selection provided"
+fi
+
+for selection in "${selections[@]}"; do
+    case "$selection" in
+        q|Q)
+            log_info "Quit"
+            exit 0
+            ;;
+    esac
+done
+
+run_theme_builders
+
+for selection in "${selections[@]}"; do
+    case "$selection" in
+        all)
+            install_all_configs
+            run_nwg_look
+            exit 0
+            ;;
+        [1-9])
+            install_app_config "${CONFIG_GROUPS[$selection]}"
+            ;;
+        *)
+            die "Unknown selection: $selection"
+            ;;
+    esac
+done
+
+log_ok "Installed selected config groups"
