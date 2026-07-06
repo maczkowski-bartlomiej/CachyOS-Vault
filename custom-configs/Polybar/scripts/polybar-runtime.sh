@@ -43,8 +43,10 @@ G_SECTION="%{O12}"
 
 T_BASE="%{T1}"
 T_TEXT="%{T4}"
+T_ICON_XL="%{T5}"
 T_ICON_LG="%{T5}"
 T_ICON_MD="%{T6}"
+T_ICON_SM="%{T7}"
 T_MUSIC_TEXT="%{T7}"
 T_RESET="%{T-}"
 

@@ -37,6 +37,40 @@ custom-themes/builders/theme-build
 | Wallpaper | `custom-themes/wallpaper/wallpaper.jpg` | `~/.config/i3/wallpaper.jpg` | none | `exec feh --bg-fill ~/.config/i3/wallpaper.jpg` | Installed as part of all configs or as a separate interactive group. |
 | I3 scripts | `custom-configs/I3/scripts/*` | `~/.config/i3/scripts/*` | none | referenced by `custom-configs/I3/config` | Installed executable. Included in the `i3` installer group and also selectable as `i3-scripts` in the interactive installer. |
 
+## Polybar Runtime And Scripts
+
+Config:
+
+```text
+Repo: custom-configs/Polybar/config.ini
+Target: ~/.config/polybar/config.ini
+```
+
+Generated theme:
+
+```text
+Repo builder: custom-themes/builders/theme-build-polybar
+Generated target: ~/.config/custom-themes/polybar-theme.ini
+Included by config.ini: include-file = ~/.config/custom-themes/polybar-theme.ini
+```
+
+Runtime helper:
+
+```text
+Repo: custom-configs/Polybar/scripts/polybar-runtime.sh
+Target: ~/.config/polybar/scripts/polybar-runtime.sh
+Purpose: shared Polybar formatting/color helper for module scripts
+```
+
+Scripts:
+
+```text
+audio-player.sh: generic playerctl-based audio module; replaces the previous YouTube Music-specific module script
+power-menu.sh: Rofi power menu; replaces the previous compact power menu script name
+shortcuts.sh: app/folder shortcut icons
+weather-openmeteo.sh: weather module using Open-Meteo
+```
+
 ## Builders
 
 | Builder | Output |

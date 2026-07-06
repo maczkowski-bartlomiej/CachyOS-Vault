@@ -2,7 +2,13 @@
 set -euo pipefail
 
 # shellcheck source=/dev/null
-source "$HOME/.config/polybar/scripts/polybar-theme.sh"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+RUNTIME_HELPER="$HOME/.config/polybar/scripts/polybar-runtime.sh"
+if [ -r "$RUNTIME_HELPER" ]; then
+  source "$RUNTIME_HELPER"
+else
+  source "$SCRIPT_DIR/polybar-runtime.sh"
+fi
 
 LAT="54.16"
 LON="19.40"
