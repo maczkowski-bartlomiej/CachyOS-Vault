@@ -26,8 +26,8 @@ floating_modifier $mod
 focus_follows_mouse no
 mouse_warping output
 
-new_window pixel 1
-new_float normal
+#new_window pixel 1
+#new_float normal
 default_border pixel 1
 default_floating_border pixel 1
 
@@ -100,6 +100,9 @@ set $ws7  "7"
 set $ws8  "8"
 set $ws9  "9"
 set $ws10 "10"
+
+workspace 2 gaps left 1
+workspace 2 gaps right 1
 
 bindsym $mod+1 workspace number $ws1
 bindsym $mod+2 workspace number $ws2
