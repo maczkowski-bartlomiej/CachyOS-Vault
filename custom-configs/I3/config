@@ -21,6 +21,7 @@ set $term alacritty
 set $focus_warp ~/.config/i3/scripts/mouse-warp
 set $volume_osd ~/.config/i3/scripts/volume-osd
 set $picom_restart ~/.config/i3/scripts/picom-restart
+set $rofi_launcher ~/.config/i3/scripts/rofi-launcher
 
 font pango:JetBrainsMono Nerd Font 9
 floating_modifier $mod
@@ -40,7 +41,7 @@ default_floating_border pixel 1
 bindsym $mod+Return exec --no-startup-id $term
 
 # Main launcher.
-bindsym --release Control+space exec --no-startup-id rofi -show combi
+bindsym --release Control+space exec --no-startup-id $rofi_launcher
 
 # Old explicit Rofi command kept for reference:
 # bindsym --release Control+space exec --no-startup-id rofi -show combi -modi window,run,combi -combi-modi window,run
@@ -225,6 +226,6 @@ exec_always --no-startup-id ~/.config/i3/scripts/xob-listener
 exec_always --no-startup-id $picom_restart
 
 exec --no-startup-id dunst
-exec --no-startup-id redshift
+exec --no-startup-id redshift -c ~/.config/redshift/redshift.conf
 exec --no-startup-id dex -a -s /etc/xdg/autostart/:$HOME/.config/autostart/
 exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1

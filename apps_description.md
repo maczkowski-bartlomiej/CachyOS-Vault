@@ -50,8 +50,11 @@ custom-themes/builders/theme-build
 |---|---|---|---|---|---|
 | I3 | `custom-configs/I3/config` | `~/.config/i3/config` | `~/.config/custom-themes/i3-theme.i3` | `include ~/.config/custom-themes/i3-theme.i3` | Also installs `custom-configs/I3/scripts/*` to `~/.config/i3/scripts/*`; installer reloads i3 when available and not skipped. |
 | Rofi | `custom-configs/Rofi/config.rasi` | `~/.config/rofi/config.rasi` | `~/.config/custom-themes/rofi-theme.rasi` | `@import "~/.config/custom-themes/rofi-theme.rasi"` | Uses an app-specific Rasi theme builder with darker Orchis row and selection colors. |
+| Redshift | `custom-configs/Redshift/redshift.conf` | `~/.config/redshift/redshift.conf` | none | n/a | Night light transitions automatically at local sunset using manual coordinates shared with the weather module. |
 | Polybar | `custom-configs/Polybar/config.ini` | `~/.config/polybar/config.ini` | `~/.config/custom-themes/polybar-theme.ini` | `include-file = ~/.config/custom-themes/polybar-theme.ini` | `launch.sh` and `scripts/*` are installed executable; focused workspace keeps the existing green color. |
 | Dunst | `custom-configs/Dunst/dunstrc` | `~/.config/dunst/dunstrc` | `~/.config/custom-themes/dunst-theme.dunstrc` | `~/.config/dunst/dunstrc.d/90-vault-theme.conf` symlink | Compact top-right notifications; low/normal time out after 2 seconds, critical stays until dismissed; installer reloads Dunst with `dunstctl reload` when available. |
+| Betterlockscreen | `custom-configs/BetterLockScreen/betterlockscreenrc` | `~/.config/betterlockscreen/betterlockscreenrc` | `~/.config/custom-themes/betterlockscreenrc` | Installer copies the generated full config | Uses the Orchis palette for i3lock-color values; package is listed in `packages/aur.txt`. |
+| Ly | `custom-configs/Ly/config.ini` | `/etc/ly/config.ini` | `~/.config/custom-themes/ly-config.ini` | Installer copies the generated full config with sudo | System config install is skipped when `VAULT_SKIP_SYSTEM_CONFIGS=1`; generated config disables empty-password login. |
 | Alacritty | `custom-configs/Alacritty/alacritty.toml` | `~/.config/alacritty/alacritty.toml` | `~/.config/custom-themes/alacritty-theme.toml` | `import = ["~/.config/custom-themes/alacritty-theme.toml"]` | TOML theme import generated from the central palette. |
 | Micro | `custom-configs/Micro/settings.json` | `~/.config/micro/settings.json` | `~/.config/custom-themes/orchis-dark.micro` | `"colorscheme": "orchis-dark"` | Micro loads named colorschemes from `~/.config/micro/colorschemes`; installer copies the generated theme to `~/.config/micro/colorschemes/orchis-dark.micro`. |
 | Picom | `custom-configs/Picom/picom.conf` | `~/.config/picom/picom.conf` | none | none | No clean include/import mechanism is currently documented here; restart Picom manually or restart i3 if needed. |
@@ -126,12 +129,50 @@ Scripts installed from `custom-configs/I3/scripts/*`:
 ```text
 mouse-warp: moves focus by direction and warps the pointer to the focused window center
 picom-restart: restarts Picom from ~/.config/picom/picom.conf on i3 reload
+rofi-launcher: launches Rofi with Flatpak desktop export paths added to XDG_DATA_DIRS
 screenshot-current-monitor: captures the monitor under the pointer, saves it, and copies it to clipboard
 screenshot-menu: Rofi menu for area, window, or current-monitor screenshots
 screenshot-lib: shared screenshot helper functions
 volume-osd: handles volume up/down/mute and writes the current value to XOB
 xob-listener: owns the XOB FIFO and lock under ${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault
 ```
+
+## Redshift Night Light
+
+Config:
+
+```text
+Repo: custom-configs/Redshift/redshift.conf
+Target: ~/.config/redshift/redshift.conf
+```
+
+Behavior:
+
+```text
+Location provider: manual
+Coordinates: 54.16, 19.40
+Day temperature: 6500K
+Night temperature: 4200K
+Transition: enabled, so Redshift changes gradually around sunset/sunrise
+Autostart: i3 runs redshift -c ~/.config/redshift/redshift.conf
+```
+
+## Rofi Flatpak Launching
+
+Rofi is launched through:
+
+```text
+~/.config/i3/scripts/rofi-launcher
+```
+
+The wrapper prepends these Flatpak export paths to `XDG_DATA_DIRS` before starting Rofi:
+
+```text
+~/.local/share/flatpak/exports/share
+/var/lib/flatpak/exports/share
+```
+
+Flatpak apps then appear through Rofi `drun` from their exported `.desktop` files.
 
 ## Dunst Runtime And Theme
 
@@ -160,6 +201,29 @@ Clicks: left closes current popup, right opens Dunst context menu
 History: Polybar notification icon opens Rofi history and copies selected text
 ```
 
+## Betterlockscreen And Ly
+
+Betterlockscreen:
+
+```text
+Repo config: custom-configs/BetterLockScreen/betterlockscreenrc
+Repo builder: custom-themes/builders/theme-build-betterlockscreen
+Generated target: ~/.config/custom-themes/betterlockscreenrc
+Installed target: ~/.config/betterlockscreen/betterlockscreenrc
+```
+
+Ly:
+
+```text
+Repo config: custom-configs/Ly/config.ini
+Repo builder: custom-themes/builders/theme-build-ly
+Generated target: ~/.config/custom-themes/ly-config.ini
+Installed target: /etc/ly/config.ini
+Install note: requires sudo unless run as root; set VAULT_SKIP_SYSTEM_CONFIGS=1 to skip /etc writes
+```
+
+Both tools keep theme values inline in their runtime config, so their builders generate full themed config files instead of include snippets.
+
 Recommended CachyOS/Arch packages for the recording feature:
 
 ```bash
@@ -174,6 +238,8 @@ sudo pacman -S ffmpeg xdotool xorg-xwininfo libnotify
 | `custom-themes/builders/theme-build-rofi` | `~/.config/custom-themes/rofi-theme.rasi` |
 | `custom-themes/builders/theme-build-polybar` | `~/.config/custom-themes/polybar-theme.ini` |
 | `custom-themes/builders/theme-build-dunst` | `~/.config/custom-themes/dunst-theme.dunstrc` |
+| `custom-themes/builders/theme-build-betterlockscreen` | `~/.config/custom-themes/betterlockscreenrc` |
+| `custom-themes/builders/theme-build-ly` | `~/.config/custom-themes/ly-config.ini` |
 | `custom-themes/builders/theme-build-alacritty` | `~/.config/custom-themes/alacritty-theme.toml` |
 | `custom-themes/builders/theme-build-micro` | `~/.config/custom-themes/orchis-dark.micro` |
 
@@ -206,6 +272,7 @@ Useful validation toggles:
 ```bash
 VAULT_SKIP_NWG_LOOK=1
 VAULT_SKIP_RELOAD=1
+VAULT_SKIP_SYSTEM_CONFIGS=1
 ```
 
 ## Logging

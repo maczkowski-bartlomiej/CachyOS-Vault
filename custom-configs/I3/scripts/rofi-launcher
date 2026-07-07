@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+prepend_xdg_data_dir() {
+    local dir="$1"
+
+    [ -d "$dir" ] || return 0
+
+    case ":${XDG_DATA_DIRS:-}:" in
+        *":$dir:"*) ;;
+        *)
+            if [ -n "${XDG_DATA_DIRS:-}" ]; then
+                XDG_DATA_DIRS="$dir:$XDG_DATA_DIRS"
+            else
+                XDG_DATA_DIRS="$dir:/usr/local/share:/usr/share"
+            fi
+            ;;
+    esac
+}
+
+prepend_xdg_data_dir "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share"
+prepend_xdg_data_dir "/var/lib/flatpak/exports/share"
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+exec rofi -show combi -drun-reload-desktop-cache "$@"

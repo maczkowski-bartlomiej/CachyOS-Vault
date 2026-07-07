@@ -79,6 +79,8 @@ configuration {
     drun-match-fields: "name,generic,exec,categories,keywords";
     drun-display-format: "{name} <span weight='light' size='small'><i>({generic})</i></span>";
     drun-show-actions: false;
+    drun-use-desktop-cache: true;
+    drun-reload-desktop-cache: true;
 
     /* -------------------------------------------------------------------------
      * Window switcher

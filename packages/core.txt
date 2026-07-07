@@ -1,14 +1,17 @@
 alacritty
+brightnessctl
 curl
 dex
 dunst
 feh
 ffmpeg
+flatpak
 gsimplecal
 i3lock
 jq
 libnotify
 libpulse
+ly
 maim
 micro
 orchis-theme
@@ -28,6 +31,7 @@ xclip
 xdg-utils
 xdotool
 xob
+xorg-xauth
 xorg-xrandr
 xorg-xrdb
 xorg-xsetroot

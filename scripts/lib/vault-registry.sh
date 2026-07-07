@@ -5,6 +5,8 @@ VAULT_THEME_BUILDERS=(
     theme-build-rofi
     theme-build-polybar
     theme-build-dunst
+    theme-build-betterlockscreen
+    theme-build-ly
     theme-build-alacritty
     theme-build-micro
 )
@@ -12,8 +14,11 @@ VAULT_THEME_BUILDERS=(
 VAULT_CONFIG_GROUPS=(
     i3
     rofi
+    redshift
     polybar
     dunst
+    betterlockscreen
+    ly
     alacritty
     micro
     picom

@@ -25,6 +25,29 @@ copy_executable() {
     log_ok "Installed executable $dest"
 }
 
+copy_system_file() {
+    local src="${1:?source required}"
+    local dest="${2:?destination required}"
+    local mode="${3:-0644}"
+
+    require_file "$src"
+
+    if [[ -n "${VAULT_SKIP_SYSTEM_CONFIGS:-}" ]]; then
+        log_info "Skipped system install $dest because VAULT_SKIP_SYSTEM_CONFIGS is set"
+        return 0
+    fi
+
+    if ((EUID == 0)); then
+        install -D -m "$mode" "$src" "$dest"
+    elif command_exists sudo; then
+        sudo install -D -m "$mode" "$src" "$dest"
+    else
+        die "sudo is required to install $dest"
+    fi
+
+    log_ok "Installed system config $dest"
+}
+
 run_theme_builders() {
     log_info "Running theme builders"
     "$REPO_ROOT/custom-themes/builders/theme-builder"
@@ -62,12 +85,26 @@ install_rofi() {
     copy_file "$REPO_ROOT/custom-configs/Rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
 }
 
+install_redshift() {
+    copy_file "$REPO_ROOT/custom-configs/Redshift/redshift.conf" "$HOME/.config/redshift/redshift.conf"
+}
+
 install_dunst() {
     ensure_generated_theme "$HOME/.config/custom-themes/dunst-theme.dunstrc" theme-build-dunst
     copy_file "$REPO_ROOT/custom-configs/Dunst/dunstrc" "$HOME/.config/dunst/dunstrc"
     ensure_dir "$HOME/.config/dunst/dunstrc.d"
     ln -sfn "$HOME/.config/custom-themes/dunst-theme.dunstrc" "$HOME/.config/dunst/dunstrc.d/90-vault-theme.conf"
     log_ok "Linked Dunst theme drop-in $HOME/.config/dunst/dunstrc.d/90-vault-theme.conf"
+}
+
+install_betterlockscreen() {
+    ensure_generated_theme "$HOME/.config/custom-themes/betterlockscreenrc" theme-build-betterlockscreen
+    copy_file "$HOME/.config/custom-themes/betterlockscreenrc" "$HOME/.config/betterlockscreen/betterlockscreenrc"
+}
+
+install_ly() {
+    ensure_generated_theme "$HOME/.config/custom-themes/ly-config.ini" theme-build-ly
+    copy_system_file "$HOME/.config/custom-themes/ly-config.ini" "/etc/ly/config.ini" 0644
 }
 
 install_polybar() {
@@ -192,6 +229,14 @@ reload_picom_if_safe() {
     log_info "Picom config installed. Restart Picom manually or restart i3 if needed."
 }
 
+reload_betterlockscreen_if_safe() {
+    log_info "Betterlockscreen config installed. Run 'betterlockscreen -u ~/.config/i3/wallpaper.jpg' if the lockscreen cache needs refreshing."
+}
+
+reload_ly_if_safe() {
+    log_info "Ly config installed. Restart or enable ly manually when ready."
+}
+
 install_app_config() {
     local name="${1:?config name required}"
 
@@ -209,9 +254,18 @@ install_app_config() {
             reload_i3
             ;;
         rofi) install_rofi ;;
+        redshift) install_redshift ;;
         dunst)
             install_dunst
             reload_dunst
+            ;;
+        betterlockscreen)
+            install_betterlockscreen
+            reload_betterlockscreen_if_safe
+            ;;
+        ly)
+            install_ly
+            reload_ly_if_safe
             ;;
         polybar)
             install_polybar
@@ -240,7 +294,10 @@ install_selected_configs() {
 install_all_configs() {
     install_i3
     install_rofi
+    install_redshift
     install_dunst
+    install_betterlockscreen
+    install_ly
     install_polybar
     install_alacritty
     install_micro
@@ -254,5 +311,7 @@ install_all_configs() {
         reload_polybar
     fi
     reload_dunst
+    reload_betterlockscreen_if_safe
+    reload_ly_if_safe
     reload_picom_if_safe
 }

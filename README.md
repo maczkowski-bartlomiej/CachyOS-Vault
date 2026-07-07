@@ -23,6 +23,8 @@ Generated files:
 ~/.config/custom-themes/rofi-theme.rasi
 ~/.config/custom-themes/polybar-theme.ini
 ~/.config/custom-themes/dunst-theme.dunstrc
+~/.config/custom-themes/betterlockscreenrc
+~/.config/custom-themes/ly-config.ini
 ~/.config/custom-themes/alacritty-theme.toml
 ~/.config/custom-themes/orchis-dark.micro
 ```
@@ -68,7 +70,7 @@ installers/install-interactive
 For headless validation:
 
 ```bash
-HOME="$(mktemp -d)" VAULT_SKIP_NWG_LOOK=1 VAULT_SKIP_RELOAD=1 installers/install-all-no-nwg-look
+HOME="$(mktemp -d)" VAULT_SKIP_NWG_LOOK=1 VAULT_SKIP_RELOAD=1 VAULT_SKIP_SYSTEM_CONFIGS=1 installers/install-all-no-nwg-look
 ```
 
 Run the repo validation suite:
@@ -80,3 +82,4 @@ scripts/validate
 See `apps_description.md` for supported apps, install targets, generated theme paths, and caveats.
 
 I3 helper scripts are installed from `custom-configs/I3/scripts/*`; volume OSD state is kept under `${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault`.
+Rofi is launched through `~/.config/i3/scripts/rofi-launcher` so Flatpak desktop entries are visible in `drun`.

@@ -1,0 +1,78 @@
+# ~/.config/betterlockscreenrc
+
+# Runtime options
+display_on=0
+span_image=false
+lock_timeout=300
+fx_list=(dimblur blur dim color)
+dim_level=24
+blur_level=0.55
+pixel_scale=10,1000
+solid_color=212121
+wallpaper_cmd="feh --bg-fill"
+quiet=false
+
+# Theme
+loginbox=00000000
+loginshadow=00000000
+locktext="locked"
+font="JetBrainsMono Nerd Font"
+ringcolor=3281EAff
+insidecolor=2C2C2Caa
+separatorcolor=00000000
+ringvercolor=81C995ff
+insidevercolor=81C99522
+ringwrongcolor=F44336ff
+insidewrongcolor=F4433626
+timecolor=ffffffff
+time_format="%H:%M"
+greetercolor=e6e6e6cc
+layoutcolor=8a8a8acc
+keyhlcolor=5B9AEEff
+bshlcolor=FBC02Dff
+veriftext="checking"
+verifcolor=81C995ff
+wrongtext="try again"
+wrongcolor=F44336ff
+modifcolor=FBC02Dff
+bgcolor=000000ff
+
+
+# Advanced i3lock-color styling
+
+# i3lockcolor_bin="i3lock-color"      # Manually set command for i3lock-color
+# suspend_command="systemctl suspend" # Manually change action e.g. hibernate/suspend-command
+
+lockargs=(
+  -n
+  --ind-pos="x+w/2:y+h/2"
+  --radius=58
+  --ring-width=6
+  --time-pos="ix:iy-135"
+  --time-align=0
+  --time-size=44
+  --date-str="%A, %d %B"
+  --date-pos="tx:ty+38"
+  --date-align=0
+  --date-font="JetBrainsMono Nerd Font"
+  --date-size=13
+  --date-color=bdbdbdcc
+  --greeter-pos="ix:iy+100"
+  --greeter-align=0
+  --greeter-text="PC Locked"
+  --greeter-size=13
+  --layout-pos="ix:iy+122"
+  --layout-align=0
+  --layout-size=11
+  --verif-pos="ix:iy+4"
+  --verif-align=0
+  --verif-text="checking"
+  --wrong-pos="ix:iy+4"
+  --wrong-align=0
+  --wrong-text="try again"
+  --modif-pos="ix:iy+76"
+  --modif-align=0
+  --noinput-text=""
+  --lock-text=""
+  --lockfailed-text="lock failed"
+)

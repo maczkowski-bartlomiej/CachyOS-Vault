@@ -51,8 +51,12 @@ check_theme_builder() {
     test -f "$tmp_home/.config/custom-themes/rofi-theme.rasi"
     test -f "$tmp_home/.config/custom-themes/polybar-theme.ini"
     test -f "$tmp_home/.config/custom-themes/dunst-theme.dunstrc"
+    test -f "$tmp_home/.config/custom-themes/betterlockscreenrc"
+    test -f "$tmp_home/.config/custom-themes/ly-config.ini"
+    bash -n "$tmp_home/.config/custom-themes/betterlockscreenrc"
     test -f "$tmp_home/.config/custom-themes/alacritty-theme.toml"
     test -f "$tmp_home/.config/custom-themes/orchis-dark.micro"
+    rg -q '^allow_empty_password = false$' "$tmp_home/.config/custom-themes/ly-config.ini"
 
     rm -rf "$tmp_home"
     trap - RETURN
@@ -63,20 +67,24 @@ check_installer_dry_run() {
 
     tmp_home="$(mktemp -d)"
     trap 'rm -rf "$tmp_home"' RETURN
-    HOME="$tmp_home" VAULT_SKIP_NWG_LOOK=1 VAULT_SKIP_RELOAD=1 "$REPO_ROOT/installers/install-all-no-nwg-look"
+    HOME="$tmp_home" VAULT_SKIP_NWG_LOOK=1 VAULT_SKIP_RELOAD=1 VAULT_SKIP_SYSTEM_CONFIGS=1 "$REPO_ROOT/installers/install-all-no-nwg-look"
 
     test -f "$tmp_home/.config/i3/config"
     test -x "$tmp_home/.config/i3/scripts/mouse-warp"
     test -x "$tmp_home/.config/i3/scripts/picom-restart"
+    test -x "$tmp_home/.config/i3/scripts/rofi-launcher"
     test -x "$tmp_home/.config/i3/scripts/screenshot-menu"
     test -x "$tmp_home/.config/i3/scripts/screenshot-current-monitor"
     test -x "$tmp_home/.config/i3/scripts/screenshot-lib"
     test -x "$tmp_home/.config/i3/scripts/volume-osd"
     test -x "$tmp_home/.config/i3/scripts/xob-listener"
     test -f "$tmp_home/.config/rofi/config.rasi"
+    test -f "$tmp_home/.config/redshift/redshift.conf"
     test -f "$tmp_home/.config/dunst/dunstrc"
     test -L "$tmp_home/.config/dunst/dunstrc.d/90-vault-theme.conf"
     test "$(readlink "$tmp_home/.config/dunst/dunstrc.d/90-vault-theme.conf")" = "$tmp_home/.config/custom-themes/dunst-theme.dunstrc"
+    test -f "$tmp_home/.config/betterlockscreen/betterlockscreenrc"
+    test -f "$tmp_home/.config/custom-themes/ly-config.ini"
     test -f "$tmp_home/.config/polybar/config.ini"
     test -x "$tmp_home/.config/polybar/scripts/polybar-script-lib.sh"
     test -x "$tmp_home/.config/polybar/scripts/audio-player.sh"
