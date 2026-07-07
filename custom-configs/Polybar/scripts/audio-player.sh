@@ -24,34 +24,18 @@ get_player() {
 }
 
 open_audio_app() {
-  local desktop_file browser
+  local player status
 
-  if command -v wmctrl >/dev/null 2>&1; then
-    if wmctrl -l | grep -i "YouTube Music" >/dev/null 2>&1; then
-      wmctrl -a "YouTube Music"
-      exit 0
+  player="$(get_player)"
+  if [ -n "$player" ]; then
+    status="$(playerctl -p "$player" status 2>/dev/null || true)"
+    if [ "$status" = "Playing" ] || [ "$status" = "Paused" ]; then
+      if command -v wmctrl >/dev/null 2>&1 && wmctrl -l | grep -i "YouTube Music" >/dev/null 2>&1; then
+        wmctrl -a "YouTube Music"
+        exit 0
+      fi
     fi
   fi
-
-  desktop_file="$(
-    grep -ril "YouTube Music" "$HOME/.local/share/applications" /usr/share/applications 2>/dev/null \
-      | grep '\.desktop$' \
-      | head -n1 || true
-  )"
-
-  if [ -n "$desktop_file" ] && command -v gtk-launch >/dev/null 2>&1; then
-    gtk-launch "$(basename "$desktop_file" .desktop)" >/dev/null 2>&1 &
-    disown
-    exit 0
-  fi
-
-  for browser in brave brave-browser brave-bin; do
-    if command -v "$browser" >/dev/null 2>&1; then
-      "$browser" --app="https://music.youtube.com" >/dev/null 2>&1 &
-      disown
-      exit 0
-    fi
-  done
 
   xdg-open "https://music.youtube.com" >/dev/null 2>&1 &
   disown
