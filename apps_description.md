@@ -67,7 +67,7 @@ Scripts:
 ```text
 audio-player.sh: playerctl-based audio player controls
 audio-output.sh: pactl + rofi audio output switcher
-calendar-menu.sh: rofi calendar popup opened by clicking the date
+calendar-menu.sh: gsimplecal popup opened by clicking the date
 screen-record.sh: ffmpeg + x11grab focused-window screen recorder; saves to ~/Videos/Recordings; attempts system audio via the default sink monitor and falls back to video-only
 power-menu.sh: Rofi power menu
 polybar-runtime.sh: shared runtime formatting/color helper for Polybar scripts
@@ -81,7 +81,7 @@ Polybar script dependencies:
 Required base: bash, polybar, rofi
 Audio: playerctl, pactl
 Weather: curl, jq
-Calendar: cal
+Calendar: gsimplecal
 Recording: ffmpeg, xdotool, xwininfo; notify-send optional
 ```
 
