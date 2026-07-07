@@ -5,39 +5,31 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/install-lib.sh
 source "$SCRIPT_DIR/lib/install-lib.sh"
 
-declare -A CONFIG_GROUPS=(
-    [1]=i3
-    [2]=rofi
-    [3]=polybar
-    [4]=alacritty
-    [5]=micro
-    [6]=picom
-    [7]=nwg-look
-    [8]=cursor-hardening
-    [9]=wallpaper
-    [10]=i3-scripts
-    [11]=dunst
-)
+print_menu() {
+    local i
 
-cat <<'MENU'
-Available configs:
-  1) i3
-  2) rofi
-  3) polybar
-  4) alacritty
-  5) micro
-  6) picom
-  7) nwg-look
-  8) cursor-hardening
-  9) wallpaper
-  10) i3-scripts
-  11) dunst
-  all) all configs
-  q) quit
+    printf 'Available configs:\n'
+    for i in "${!VAULT_CONFIG_GROUPS[@]}"; do
+        printf '  %d) %s\n' "$((i + 1))" "${VAULT_CONFIG_GROUPS[$i]}"
+    done
+    printf '  all) all configs\n'
+    printf '  q) quit\n\n'
+    printf 'Enter numbers separated by spaces:\n'
+}
 
-Enter numbers separated by spaces:
-MENU
+selection_to_group() {
+    local selection="$1"
 
+    if [[ "$selection" =~ ^[0-9]+$ ]] &&
+        ((selection >= 1 && selection <= ${#VAULT_CONFIG_GROUPS[@]})); then
+        printf '%s\n' "${VAULT_CONFIG_GROUPS[$((selection - 1))]}"
+        return 0
+    fi
+
+    return 1
+}
+
+print_menu
 read -r -a selections
 
 if [[ "${#selections[@]}" -eq 0 ]]; then
@@ -62,11 +54,12 @@ for selection in "${selections[@]}"; do
             run_nwg_look
             exit 0
             ;;
-        [1-9]|10|11)
-            install_app_config "${CONFIG_GROUPS[$selection]}"
-            ;;
         *)
-            die "Unknown selection: $selection"
+            if group="$(selection_to_group "$selection")"; then
+                install_app_config "$group"
+            else
+                die "Unknown selection: $selection"
+            fi
             ;;
     esac
 done

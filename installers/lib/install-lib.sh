@@ -6,10 +6,8 @@ REPO_ROOT="${REPO_ROOT:-$(cd -- "$INSTALL_LIB_DIR/../.." && pwd)}"
 
 # shellcheck source=../../scripts/lib/vault-lib.sh
 source "$REPO_ROOT/scripts/lib/vault-lib.sh"
-
-repo_root() {
-    printf '%s\n' "$REPO_ROOT"
-}
+# shellcheck source=../../scripts/lib/vault-registry.sh
+source "$REPO_ROOT/scripts/lib/vault-registry.sh"
 
 copy_file() {
     local src="${1:?source required}"
@@ -181,22 +179,39 @@ reload_picom_if_safe() {
 
 install_app_config() {
     local name="${1:?config name required}"
+
+    if ! vault_config_group_exists "$name"; then
+        die "Unknown config group: $name"
+    fi
+
     case "$name" in
-        i3) install_i3 ;;
-        i3-scripts) install_i3_scripts ;;
+        i3)
+            install_i3
+            reload_i3
+            ;;
+        i3-scripts)
+            install_i3_scripts
+            reload_i3
+            ;;
         rofi) install_rofi ;;
         dunst)
             install_dunst
             reload_dunst
             ;;
-        polybar) install_polybar ;;
+        polybar)
+            install_polybar
+            reload_polybar
+            ;;
         alacritty) install_alacritty ;;
         micro) install_micro ;;
-        picom) install_picom ;;
+        picom)
+            install_picom
+            reload_picom_if_safe
+            ;;
         nwg-look) install_nwg_look_config ;;
         cursor-hardening) apply_cursor_hardening ;;
         wallpaper) install_wallpaper ;;
-        *) die "Unknown config group: $name" ;;
+        *) die "Config group is registered but has no installer: $name" ;;
     esac
 }
 
