@@ -21,6 +21,7 @@ VAULT_CONFIG_GROUPS=(
     ly
     alacritty
     zsh
+    environment
     micro
     picom
     nwg-look

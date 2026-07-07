@@ -88,3 +88,4 @@ Rofi is launched through `~/.config/i3/scripts/rofi-launcher` so Flatpak desktop
 Drive automounts are sourced from `custom-configs/System/fstab-drive-automounts` and installed as a managed `/etc/fstab` block.
 Thunar Places entries for those drives are sourced from `custom-configs/GTK/bookmarks`.
 Zsh is installed from `custom-configs/Zsh/.zshrc` with an Oh My Posh prompt from `custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json`.
+Gaming environment variables are installed from `custom-configs/Environment/90-gaming.conf` to `~/.config/environment.d/90-gaming.conf`.
