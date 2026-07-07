@@ -43,6 +43,10 @@ xorg-xsetroot
 xorg-xwininfo
 zoxide
 zsh
+zsh-completions
 zsh-autosuggestions
 zsh-history-substring-search
 zsh-syntax-highlighting
+zoxide
+KolourPaint
+Viewnior

@@ -1,2 +1,4 @@
 betterlockscreen
 oh-my-posh-bin
+bibata-cursor-theme
+tre-command-bin

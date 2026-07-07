@@ -1,3 +1,10 @@
 bitwarden
 thunar
 zen-browser-bin
+steam
+wine
+lutris
+gamescope
+vlc
+audacity
+qbittorrent
