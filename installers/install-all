@@ -7,4 +7,3 @@ source "$SCRIPT_DIR/lib/install-lib.sh"
 
 run_theme_builders
 install_all_configs
-run_nwg_look

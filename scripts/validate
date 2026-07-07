@@ -86,7 +86,7 @@ check_installer_dry_run() {
 
     tmp_home="$(mktemp -d)"
     trap 'rm -rf "$tmp_home"' RETURN
-    HOME="$tmp_home" VAULT_SKIP_NWG_LOOK=1 VAULT_SKIP_RELOAD=1 VAULT_SKIP_SYSTEM_CONFIGS=1 "$REPO_ROOT/installers/install-all-no-nwg-look"
+    HOME="$tmp_home" VAULT_SKIP_RELOAD=1 VAULT_SKIP_SYSTEM_CONFIGS=1 "$REPO_ROOT/installers/install-all"
 
     test -f "$tmp_home/.config/i3/config"
     test -x "$tmp_home/.config/i3/scripts/mouse-warp"
@@ -231,7 +231,7 @@ check_registry() {
 
     for builder in "${VAULT_THEME_BUILDERS[@]}"; do
         test -x "$REPO_ROOT/custom-themes/builders/$builder"
-        rg -q "$builder" "$REPO_ROOT/apps_description.md"
+        rg -q "$builder" "$REPO_ROOT/apps_description.md" "$REPO_ROOT/docs"
     done
 
     for group in "${VAULT_CONFIG_GROUPS[@]}"; do
