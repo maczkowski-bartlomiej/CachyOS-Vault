@@ -65,10 +65,30 @@ Purpose: shared Polybar formatting/color helper for module scripts
 Scripts:
 
 ```text
-audio-player.sh: generic playerctl-based audio module; replaces the previous YouTube Music-specific module script
-power-menu.sh: Rofi power menu; replaces the previous compact power menu script name
+audio-player.sh: playerctl-based audio player controls
+audio-output.sh: pactl + rofi audio output switcher
+calendar-menu.sh: rofi calendar popup opened by clicking the date
+screen-record.sh: ffmpeg + x11grab focused-window screen recorder; saves to ~/Videos/Recordings; attempts system audio via the default sink monitor and falls back to video-only
+power-menu.sh: Rofi power menu
+polybar-runtime.sh: shared runtime formatting/color helper for Polybar scripts
 shortcuts.sh: app/folder shortcut icons
 weather-openmeteo.sh: weather module using Open-Meteo
+```
+
+Polybar script dependencies:
+
+```text
+Required base: bash, polybar, rofi
+Audio: playerctl, pactl
+Weather: curl, jq
+Calendar: cal
+Recording: ffmpeg, xdotool, xwininfo; notify-send optional
+```
+
+Recommended CachyOS/Arch packages for the recording feature:
+
+```bash
+sudo pacman -S ffmpeg xdotool xorg-xwininfo libnotify
 ```
 
 ## Builders
