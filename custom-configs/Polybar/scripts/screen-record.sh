@@ -1,29 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SELF="$HOME/.config/polybar/scripts/screen-record.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-RUNTIME_HELPER="$HOME/.config/polybar/scripts/polybar-runtime.sh"
 # shellcheck source=/dev/null
-if [ -r "$RUNTIME_HELPER" ]; then
-  source "$RUNTIME_HELPER"
-else
-  source "$SCRIPT_DIR/polybar-runtime.sh"
-fi
+source "$SCRIPT_DIR/polybar-script-lib.sh"
 
 STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault-polybar"
 PID_FILE="$STATE_DIR/screen-record.pid"
 LOG_FILE="$STATE_DIR/screen-record.log"
 RECORDINGS_DIR="${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings"
-
-notify_user() {
-  local title="$1"
-  local body="${2:-}"
-
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send "$title" "$body"
-  fi
-}
 
 is_recording() {
   local pid
@@ -100,6 +85,11 @@ start_recording() {
     fi
   done
 
+  if [ -z "${DISPLAY:-}" ]; then
+    notify_user "Screen Recording" "DISPLAY is not set"
+    exit 1
+  fi
+
   mkdir -p "$STATE_DIR" "$RECORDINGS_DIR"
 
   geometry="$(get_focused_geometry || true)"
@@ -111,7 +101,7 @@ start_recording() {
   read -r x y width height <<< "$geometry"
 
   output="$RECORDINGS_DIR/$(date '+%Y-%m-%d_%H-%M-%S').mkv"
-  display_name="${DISPLAY:-:0}"
+  display_name="$DISPLAY"
   audio_source="$(default_monitor_source || true)"
 
   ffmpeg_cmd=(

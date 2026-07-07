@@ -6,6 +6,11 @@ read_color() {
   local key="$1"
   local fallback="$2"
 
+  if [ ! -r "$POLYBAR_CONFIG" ]; then
+    printf '%s\n' "$fallback"
+    return
+  fi
+
   awk -F '=' -v key="$key" -v fallback="$fallback" '
     $0 ~ /^\[colors\]/ { in_colors = 1; next }
     $0 ~ /^\[/ { in_colors = 0 }

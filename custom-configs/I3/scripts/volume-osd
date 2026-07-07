@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault"
+pipe="$state_dir/xobpipe"
+action="${1:-}"
+
+write_volume() {
+    local volume
+
+    volume="$(pamixer --get-volume 2>/dev/null || printf '0')"
+    printf '%s\n' "$volume" > "$pipe" 2>/dev/null || true
+}
+
+if ! command -v pamixer >/dev/null 2>&1; then
+    command -v notify-send >/dev/null 2>&1 && notify-send "Volume" "pamixer not found"
+    exit 1
+fi
+
+mkdir -p "$state_dir"
+
+case "$action" in
+    up)
+        pamixer -ui 3
+        write_volume
+        ;;
+    down)
+        pamixer -ud 3
+        write_volume
+        ;;
+    mute)
+        pamixer -t
+        if pamixer --get-mute 2>/dev/null | grep -qi '^true$'; then
+            printf '0\n' > "$pipe" 2>/dev/null || true
+        else
+            write_volume
+        fi
+        ;;
+    *)
+        exit 2
+        ;;
+esac

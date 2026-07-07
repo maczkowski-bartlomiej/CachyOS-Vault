@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+SCREENSHOT_DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
+
+require_screenshot_commands() {
+    local cmd
+
+    for cmd in "$@"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            if command -v notify-send >/dev/null 2>&1; then
+                notify-send "Screenshot" "$cmd not found"
+            fi
+            exit 1
+        fi
+    done
+}
+
+new_screenshot_file() {
+    mkdir -p "$SCREENSHOT_DIR"
+    printf '%s/screenshot-%s.png\n' "$SCREENSHOT_DIR" "$(date +'%Y-%m-%d_%H-%M-%S')"
+}
+
+copy_image_to_clipboard() {
+    xclip -selection clipboard -target image/png -i "$1"
+}
+
+notify_screenshot_done() {
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send "Screenshot" "Saved and copied to clipboard:
+$1"
+    fi
+}
+
+current_monitor_geometry() {
+    local location mouse_x mouse_y
+
+    location="$(xdotool getmouselocation --shell)"
+    mouse_x="$(printf '%s\n' "$location" | awk -F= '$1 == "X" {print $2; exit}')"
+    mouse_y="$(printf '%s\n' "$location" | awk -F= '$1 == "Y" {print $2; exit}')"
+
+    case "$mouse_x:$mouse_y" in
+        *[!0-9:]*|::*|*:|*::*) return 1 ;;
+    esac
+
+    xrandr --query | awk -v px="$mouse_x" -v py="$mouse_y" '
+        / connected/ {
+            for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9]+x[0-9]+[+-][0-9]+[+-][0-9]+$/) {
+                    geom = $i
+                    split(geom, a, /x|\+/)
+
+                    w = a[1]
+                    h = a[2]
+                    x = a[3]
+                    y = a[4]
+
+                    if (px >= x && px < x + w && py >= y && py < y + h) {
+                        print geom
+                        exit
+                    }
+                }
+            }
+        }
+    '
+}

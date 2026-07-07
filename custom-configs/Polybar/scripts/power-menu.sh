@@ -3,12 +3,7 @@ set -euo pipefail
 
 # shellcheck source=/dev/null
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-RUNTIME_HELPER="$HOME/.config/polybar/scripts/polybar-runtime.sh"
-if [ -r "$RUNTIME_HELPER" ]; then
-  source "$RUNTIME_HELPER"
-else
-  source "$SCRIPT_DIR/polybar-runtime.sh"
-fi
+source "$SCRIPT_DIR/polybar-script-lib.sh"
 
 choice="$(
   printf '<span foreground="%s"></span>   Lock\n<span foreground="%s">󰒲</span>   Sleep\n<span foreground="%s"></span>   Logout i3\n<span foreground="%s"></span>   Reboot\n<span foreground="%s"></span>   Shutdown\n' \

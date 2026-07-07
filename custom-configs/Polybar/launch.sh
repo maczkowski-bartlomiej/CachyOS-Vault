@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 CONFIG="$HOME/.config/polybar/config.ini"
-PRIMARY_MONITOR="${PRIMARY_MONITOR:-DP-0}"
+PRIMARY_MONITOR="${PRIMARY_MONITOR:-HDMI-0}"
 
 killall -q polybar
 

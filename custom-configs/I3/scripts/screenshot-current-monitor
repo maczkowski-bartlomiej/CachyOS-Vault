@@ -1,47 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
-mkdir -p "$DIR"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=screenshot-lib
+source "$SCRIPT_DIR/screenshot-lib"
 
-FILE="$DIR/screenshot-$(date +'%Y-%m-%d_%H-%M-%S').png"
+require_screenshot_commands maim xclip xdotool xrandr
 
-copy_to_clipboard() {
-    xclip -selection clipboard -target image/png -i "$1"
-}
-
-notify_done() {
-    notify-send "Screenshot" "Saved and copied to clipboard:
-$1"
-}
-
-current_monitor_geometry() {
-    eval "$(xdotool getmouselocation --shell)"
-
-    xrandr --query | awk -v px="$X" -v py="$Y" '
-        / connected/ {
-            for (i = 1; i <= NF; i++) {
-                if ($i ~ /^[0-9]+x[0-9]+[+-][0-9]+[+-][0-9]+$/) {
-                    geom = $i
-                    split(geom, a, /x|\+/)
-
-                    w = a[1]
-                    h = a[2]
-                    x = a[3]
-                    y = a[4]
-
-                    if (px >= x && px < x + w && py >= y && py < y + h) {
-                        print geom
-                        exit
-                    }
-                }
-            }
-        }
-    '
-}
-
+FILE="$(new_screenshot_file)"
 GEOM="$(current_monitor_geometry)"
-maim -u -g "$GEOM" "$FILE"
 
-copy_to_clipboard "$FILE"
-notify_done "$FILE"
+maim -u -g "$GEOM" "$FILE"
+copy_image_to_clipboard "$FILE"
+notify_screenshot_done "$FILE"

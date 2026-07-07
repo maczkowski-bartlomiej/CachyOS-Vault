@@ -3,13 +3,8 @@ set -euo pipefail
 
 SELF="$HOME/.config/polybar/scripts/audio-player.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-RUNTIME_HELPER="$HOME/.config/polybar/scripts/polybar-runtime.sh"
 # shellcheck source=/dev/null
-if [ -r "$RUNTIME_HELPER" ]; then
-  source "$RUNTIME_HELPER"
-else
-  source "$SCRIPT_DIR/polybar-runtime.sh"
-fi
+source "$SCRIPT_DIR/polybar-script-lib.sh"
 
 AUDIO_ICON=" "
 MAX_TEXT_WIDTH="${AUDIO_PLAYER_MAX_TEXT_WIDTH:-42}"
@@ -124,7 +119,7 @@ notify_track() {
 
   player="$(get_player)"
   if [ -z "$player" ]; then
-    notify-send "Audio Player" "Not running"
+    notify_user "Audio Player" "Not running"
     exit 0
   fi
 
@@ -133,11 +128,11 @@ notify_track() {
   title="$(playerctl -p "$player" metadata xesam:title 2>/dev/null || true)"
 
   if [ -n "$artist" ] && [ -n "$title" ]; then
-    notify-send "Audio Player - $status" "$artist - $title"
+    notify_user "Audio Player - $status" "$artist - $title"
   elif [ -n "$title" ]; then
-    notify-send "Audio Player - $status" "$title"
+    notify_user "Audio Player - $status" "$title"
   else
-    notify-send "Audio Player" "$status"
+    notify_user "Audio Player" "$status"
   fi
 }
 

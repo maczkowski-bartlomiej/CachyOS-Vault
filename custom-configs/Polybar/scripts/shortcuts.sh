@@ -3,13 +3,8 @@ set -euo pipefail
 
 SELF="$HOME/.config/polybar/scripts/shortcuts.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-RUNTIME_HELPER="$HOME/.config/polybar/scripts/polybar-runtime.sh"
 # shellcheck source=/dev/null
-if [ -r "$RUNTIME_HELPER" ]; then
-  source "$RUNTIME_HELPER"
-else
-  source "$SCRIPT_DIR/polybar-runtime.sh"
-fi
+source "$SCRIPT_DIR/polybar-script-lib.sh"
 
 open_brave() {
   for browser in brave brave-browser brave-bin; do

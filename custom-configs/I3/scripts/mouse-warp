@@ -8,6 +8,10 @@ case "$dir" in
     *) exit 2 ;;
 esac
 
+for cmd in i3-msg jq xdotool; do
+    command -v "$cmd" >/dev/null 2>&1 || exit 1
+done
+
 i3-msg "focus $dir" >/dev/null
 sleep 0.02
 
@@ -22,4 +26,8 @@ coords="$(
 
 [ -n "$coords" ] || exit 0
 
-xdotool mousemove $coords
+read -r x y <<< "$coords"
+
+[ -n "${x:-}" ] && [ -n "${y:-}" ] || exit 0
+
+xdotool mousemove "$x" "$y"

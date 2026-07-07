@@ -53,4 +53,12 @@ For headless validation:
 HOME="$(mktemp -d)" VAULT_SKIP_NWG_LOOK=1 VAULT_SKIP_RELOAD=1 installers/install-all-no-nwg-look
 ```
 
+Run the repo validation suite:
+
+```bash
+scripts/validate
+```
+
 See `apps_description.md` for supported apps, install targets, generated theme paths, and caveats.
+
+I3 helper scripts are installed from `custom-configs/I3/scripts/*`; volume OSD state is kept under `${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault`.

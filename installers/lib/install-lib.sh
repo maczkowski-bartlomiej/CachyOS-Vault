@@ -30,6 +30,19 @@ run_theme_builders() {
     "$REPO_ROOT/custom-themes/builders/theme-builder"
 }
 
+ensure_generated_theme() {
+    local file="${1:?theme file required}"
+    local builder="${2:?theme builder required}"
+
+    if [[ -f "$file" ]]; then
+        return 0
+    fi
+
+    log_info "Generating missing theme file $file"
+    "$REPO_ROOT/custom-themes/builders/$builder"
+    require_file "$file"
+}
+
 install_i3() {
     copy_file "$REPO_ROOT/custom-configs/I3/config" "$HOME/.config/i3/config"
     install_i3_scripts
@@ -50,6 +63,7 @@ install_rofi() {
 }
 
 install_dunst() {
+    ensure_generated_theme "$HOME/.config/custom-themes/dunst-theme.dunstrc" theme-build-dunst
     copy_file "$REPO_ROOT/custom-configs/Dunst/dunstrc" "$HOME/.config/dunst/dunstrc"
     ensure_dir "$HOME/.config/dunst/dunstrc.d"
     ln -sfn "$HOME/.config/custom-themes/dunst-theme.dunstrc" "$HOME/.config/dunst/dunstrc.d/90-vault-theme.conf"
@@ -73,6 +87,7 @@ install_alacritty() {
 }
 
 install_micro() {
+    ensure_generated_theme "$HOME/.config/custom-themes/orchis-dark.micro" theme-build-micro
     copy_file "$REPO_ROOT/custom-configs/Micro/settings.json" "$HOME/.config/micro/settings.json"
     copy_file "$HOME/.config/custom-themes/orchis-dark.micro" "$HOME/.config/micro/colorschemes/orchis-dark.micro"
 }

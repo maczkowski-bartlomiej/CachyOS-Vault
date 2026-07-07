@@ -19,6 +19,8 @@ include ~/.config/custom-themes/i3-theme.i3
 set $mod Mod4
 set $term alacritty
 set $focus_warp ~/.config/i3/scripts/mouse-warp
+set $volume_osd ~/.config/i3/scripts/volume-osd
+set $picom_restart ~/.config/i3/scripts/picom-restart
 
 font pango:JetBrainsMono Nerd Font 9
 floating_modifier $mod
@@ -161,10 +163,9 @@ bindsym $mod+l exec --no-startup-id betterlockscreen --lock
 # Media keys / OSD
 # =============================================================================
 
-bindsym XF86AudioRaiseVolume exec --no-startup-id "pamixer -ui 3 && pamixer --get-volume > /tmp/xobpipe"
-bindsym XF86AudioLowerVolume exec --no-startup-id "pamixer -ud 3 && pamixer --get-volume > /tmp/xobpipe"
-
-bindsym XF86AudioMute exec --no-startup-id "amixer sset Master toggle | sed -En '/\[on\]/ s/.*\[([0-9]+)%\].*/\1/p; /\[off\]/ s/.*/0/p' | head -1 > /tmp/xobpipe"
+bindsym XF86AudioRaiseVolume exec --no-startup-id $volume_osd up
+bindsym XF86AudioLowerVolume exec --no-startup-id $volume_osd down
+bindsym XF86AudioMute exec --no-startup-id $volume_osd mute
 
 
 # =============================================================================
@@ -175,7 +176,7 @@ bindsym XF86AudioMute exec --no-startup-id "amixer sset Master toggle | sed -En 
 bindsym Print exec --no-startup-id ~/.config/i3/scripts/screenshot-menu
 
 # Quickly screenshot current monitor.
-bindsym Shift+Print exec --no-startup-id ~/.config/i3/scripts/screenshot-current-monito
+bindsym Shift+Print exec --no-startup-id ~/.config/i3/scripts/screenshot-current-monitor
 
 # =============================================================================
 # Floating / border rules
@@ -221,7 +222,7 @@ exec_always --no-startup-id ~/.config/polybar/launch.sh
 exec_always --no-startup-id ~/.config/i3/scripts/xob-listener
 
 # While tuning Picom config, restart it on i3 reload.
-exec_always --no-startup-id sh -c 'pkill -x picom || true; sleep 0.2; picom --config "$HOME/.config/picom/picom.conf"'
+exec_always --no-startup-id $picom_restart
 
 exec --no-startup-id dunst
 exec --no-startup-id redshift

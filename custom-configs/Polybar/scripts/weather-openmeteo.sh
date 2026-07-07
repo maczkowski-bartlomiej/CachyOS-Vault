@@ -3,21 +3,25 @@ set -euo pipefail
 
 # shellcheck source=/dev/null
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-RUNTIME_HELPER="$HOME/.config/polybar/scripts/polybar-runtime.sh"
-if [ -r "$RUNTIME_HELPER" ]; then
-  source "$RUNTIME_HELPER"
-else
-  source "$SCRIPT_DIR/polybar-runtime.sh"
-fi
+source "$SCRIPT_DIR/polybar-script-lib.sh"
 
-LAT="54.16"
-LON="19.40"
+LAT="${WEATHER_LAT:-54.16}"
+LON="${WEATHER_LON:-19.40}"
+
+weather_fallback() {
+  echo "${T_ICON_LG}$(F "$C_MUTED" "󰖐")${T_RESET}${G_ICON}--°"
+}
+
+if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  weather_fallback
+  exit 0
+fi
 
 URL="https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,weather_code,is_day&timezone=auto"
 json="$(curl -fsS "$URL" 2>/dev/null || true)"
 
 if [ -z "$json" ]; then
-  echo "${T_ICON_LG}$(F "$C_MUTED" "󰖐")${T_RESET}${G_ICON}--°"
+  weather_fallback
   exit 0
 fi
 

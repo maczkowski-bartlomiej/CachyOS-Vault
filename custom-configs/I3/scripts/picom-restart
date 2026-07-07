@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v picom >/dev/null 2>&1; then
+    exit 0
+fi
+
+pkill -x picom 2>/dev/null || true
+sleep 0.2
+picom --config "$HOME/.config/picom/picom.conf"

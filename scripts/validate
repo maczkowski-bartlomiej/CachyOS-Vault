@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=lib/vault-lib.sh
+source "$REPO_ROOT/scripts/lib/vault-lib.sh"
+
+failures=0
+
+record_failure() {
+    failures=$((failures + 1))
+    log_error "$*"
+}
+
+run_check() {
+    local label="$1"
+    shift
+
+    log_info "$label"
+    if "$@"; then
+        log_ok "$label"
+    else
+        record_failure "$label failed"
+    fi
+}
+
+check_shell_syntax() {
+    local file
+
+    while IFS= read -r file; do
+        bash -n "$file"
+    done < <(
+        find "$REPO_ROOT" \
+            -path "$REPO_ROOT/.git" -prune -o \
+            -type f \
+            \( -name '*.sh' -o -path '*/scripts/*' -o -path '*/builders/*' -o -path '*/installers/*' \) \
+            -print
+    )
+}
+
+check_theme_builder() {
+    local tmp_home
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+    HOME="$tmp_home" "$REPO_ROOT/custom-themes/builders/theme-builder"
+
+    test -f "$tmp_home/.config/custom-themes/i3-theme.i3"
+    test -f "$tmp_home/.config/custom-themes/rofi-theme.rasi"
+    test -f "$tmp_home/.config/custom-themes/polybar-theme.ini"
+    test -f "$tmp_home/.config/custom-themes/dunst-theme.dunstrc"
+    test -f "$tmp_home/.config/custom-themes/alacritty-theme.toml"
+    test -f "$tmp_home/.config/custom-themes/orchis-dark.micro"
+
+    rm -rf "$tmp_home"
+    trap - RETURN
+}
+
+check_installer_dry_run() {
+    local tmp_home
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+    HOME="$tmp_home" VAULT_SKIP_NWG_LOOK=1 VAULT_SKIP_RELOAD=1 "$REPO_ROOT/installers/install-all-no-nwg-look"
+
+    test -f "$tmp_home/.config/i3/config"
+    test -x "$tmp_home/.config/i3/scripts/mouse-warp"
+    test -x "$tmp_home/.config/i3/scripts/picom-restart"
+    test -x "$tmp_home/.config/i3/scripts/screenshot-menu"
+    test -x "$tmp_home/.config/i3/scripts/screenshot-current-monitor"
+    test -x "$tmp_home/.config/i3/scripts/screenshot-lib"
+    test -x "$tmp_home/.config/i3/scripts/volume-osd"
+    test -x "$tmp_home/.config/i3/scripts/xob-listener"
+    test -f "$tmp_home/.config/rofi/config.rasi"
+    test -f "$tmp_home/.config/dunst/dunstrc"
+    test -L "$tmp_home/.config/dunst/dunstrc.d/90-vault-theme.conf"
+    test "$(readlink "$tmp_home/.config/dunst/dunstrc.d/90-vault-theme.conf")" = "$tmp_home/.config/custom-themes/dunst-theme.dunstrc"
+    test -f "$tmp_home/.config/polybar/config.ini"
+    test -x "$tmp_home/.config/polybar/scripts/polybar-script-lib.sh"
+    test -x "$tmp_home/.config/polybar/scripts/audio-player.sh"
+    test -f "$tmp_home/.config/alacritty/alacritty.toml"
+    test -f "$tmp_home/.config/micro/settings.json"
+    test -f "$tmp_home/.config/micro/colorschemes/orchis-dark.micro"
+    test -f "$tmp_home/.config/picom/picom.conf"
+
+    rm -rf "$tmp_home"
+    trap - RETURN
+}
+
+check_stale_names() {
+    ! rg -n 'ytmusic\.sh|powermenu\.sh|polybar-theme\.sh' "$REPO_ROOT" \
+        -g '!scripts/validate' \
+        -g '!*.jpg' \
+        -g '!*.png'
+    ! rg -n 'screenshot-current-monito([^r]|$)' "$REPO_ROOT/custom-configs" "$REPO_ROOT/apps_description.md" "$REPO_ROOT/README.md" \
+        -g '!*.jpg' \
+        -g '!*.png'
+}
+
+check_dunst_config() {
+    local output tmp_home
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+
+    HOME="$tmp_home" "$REPO_ROOT/custom-themes/builders/theme-build-dunst"
+    install -d "$tmp_home/.config/dunst/dunstrc.d"
+    ln -s "$tmp_home/.config/custom-themes/dunst-theme.dunstrc" "$tmp_home/.config/dunst/dunstrc.d/90-vault-theme.conf"
+
+    output="$(HOME="$tmp_home" dunst -conf "$REPO_ROOT/custom-configs/Dunst/dunstrc" -verbosity warn -print 2>&1 || true)"
+    output="$(printf '%s\n' "$output" | rg -v 'Cannot open X11 display|Couldn'\''t initialize X11 output|Aborting\\.\\.\\.' || true)"
+    [ -z "$output" ]
+
+    rm -rf "$tmp_home"
+    trap - RETURN
+}
+
+check_polybar_smoke() {
+    "$REPO_ROOT/custom-configs/Polybar/scripts/audio-output.sh" print >/dev/null
+    "$REPO_ROOT/custom-configs/Polybar/scripts/screen-record.sh" status >/dev/null
+    "$REPO_ROOT/custom-configs/Polybar/scripts/notification-history.sh" print >/dev/null
+}
+
+check_registry() {
+    local builder group
+
+    # shellcheck source=lib/vault-registry.sh
+    source "$REPO_ROOT/scripts/lib/vault-registry.sh"
+
+    for builder in "${VAULT_THEME_BUILDERS[@]}"; do
+        test -x "$REPO_ROOT/custom-themes/builders/$builder"
+        rg -q "$builder" "$REPO_ROOT/apps_description.md"
+    done
+
+    for group in "${VAULT_CONFIG_GROUPS[@]}"; do
+        rg -q "$group" "$REPO_ROOT/installers/lib/install-lib.sh"
+    done
+}
+
+check_shellcheck_if_available() {
+    if ! command -v shellcheck >/dev/null 2>&1; then
+        log_warn "shellcheck not found; skipped"
+        return 0
+    fi
+
+    shellcheck \
+        "$REPO_ROOT"/scripts/validate \
+        "$REPO_ROOT"/scripts/lib/*.sh \
+        "$REPO_ROOT"/installers/install-* \
+        "$REPO_ROOT"/installers/lib/*.sh \
+        "$REPO_ROOT"/custom-themes/builders/theme-build* \
+        "$REPO_ROOT"/custom-configs/Polybar/scripts/*.sh \
+        "$REPO_ROOT"/custom-configs/I3/scripts/*
+}
+
+cd "$REPO_ROOT"
+
+run_check "Shell syntax" check_shell_syntax
+run_check "Theme builder dry run" check_theme_builder
+run_check "Installer dry run" check_installer_dry_run
+run_check "Stale-name scan" check_stale_names
+run_check "Dunst config parse" check_dunst_config
+run_check "Polybar smoke tests" check_polybar_smoke
+run_check "Registry consistency" check_registry
+run_check "ShellCheck optional pass" check_shellcheck_if_available
+
+if [ "$failures" -gt 0 ]; then
+    die "$failures validation check(s) failed"
+fi
+
+log_ok "All validation checks passed"

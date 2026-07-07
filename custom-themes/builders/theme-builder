@@ -6,17 +6,10 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 # shellcheck source=../../scripts/lib/vault-lib.sh
 source "$REPO_ROOT/scripts/lib/vault-lib.sh"
+# shellcheck source=../../scripts/lib/vault-registry.sh
+source "$REPO_ROOT/scripts/lib/vault-registry.sh"
 
-builders=(
-    theme-build-i3
-    theme-build-rofi
-    theme-build-polybar
-    theme-build-dunst
-    theme-build-alacritty
-    theme-build-micro
-)
-
-for builder in "${builders[@]}"; do
+for builder in "${VAULT_THEME_BUILDERS[@]}"; do
     log_info "Running $builder"
     "$SCRIPT_DIR/$builder"
 done

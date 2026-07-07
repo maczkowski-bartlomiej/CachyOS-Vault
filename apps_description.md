@@ -36,7 +36,7 @@ custom-themes/builders/theme-build
 | nwg-look | `custom-configs/I3/nwg-look/config` | `~/.config/nwg-look/config` | none | n/a | `install-all` may launch `nwg-look`; no-nwg and `VAULT_SKIP_NWG_LOOK=1` skip it. |
 | Cursor hardening | `custom-configs/I3/cursor-hardening/index.theme`, `.Xresources` | `~/.icons/default/index.theme`, `~/.Xresources` | none | `xrdb -merge ~/.Xresources` | Uses `Bibata-Modern-Ice`; `xrdb` merge is skipped when `VAULT_SKIP_RELOAD=1` or `xrdb` is unavailable. |
 | Wallpaper | `custom-themes/wallpaper/wallpaper.jpg` | `~/.config/i3/wallpaper.jpg` | none | `exec feh --bg-fill ~/.config/i3/wallpaper.jpg` | Installed as part of all configs or as a separate interactive group. |
-| I3 scripts | `custom-configs/I3/scripts/*` | `~/.config/i3/scripts/*` | none | referenced by `custom-configs/I3/config` | Installed executable. Included in the `i3` installer group and also selectable as `i3-scripts` in the interactive installer. |
+| I3 scripts | `custom-configs/I3/scripts/*` | `~/.config/i3/scripts/*` | none | referenced by `custom-configs/I3/config` | Installed executable. Includes helpers for screenshots, volume/XOB, Picom restart, mouse warping, and XOB listening. Included in the `i3` installer group and also selectable as `i3-scripts` in the interactive installer. |
 
 ## Polybar Runtime And Scripts
 
@@ -63,6 +63,14 @@ Target: ~/.config/polybar/scripts/polybar-runtime.sh
 Purpose: shared Polybar formatting/color helper for module scripts
 ```
 
+Script helper:
+
+```text
+Repo: custom-configs/Polybar/scripts/polybar-script-lib.sh
+Target: ~/.config/polybar/scripts/polybar-script-lib.sh
+Purpose: shared runtime sourcing and notification helper for Polybar scripts
+```
+
 Scripts:
 
 ```text
@@ -73,6 +81,7 @@ screen-record.sh: ffmpeg + x11grab focused-window screen recorder; saves to ~/Vi
 notification-history.sh: Dunst history icon; left-click opens Rofi history and copies selected notification text, right-click clears Dunst history
 power-menu.sh: Rofi power menu
 polybar-runtime.sh: shared runtime formatting/color helper for Polybar scripts
+polybar-script-lib.sh: shared loader/helper sourced by module scripts
 shortcuts.sh: app/folder shortcut icons
 weather-openmeteo.sh: weather module using Open-Meteo
 ```
@@ -86,6 +95,20 @@ Weather: curl, jq
 Calendar: gsimplecal
 Recording: ffmpeg, xdotool, xwininfo; notify-send optional
 Notifications: dunst, dunstctl, jq, xclip or xsel
+```
+
+## I3 Runtime Scripts
+
+Scripts installed from `custom-configs/I3/scripts/*`:
+
+```text
+mouse-warp: moves focus by direction and warps the pointer to the focused window center
+picom-restart: restarts Picom from ~/.config/picom/picom.conf on i3 reload
+screenshot-current-monitor: captures the monitor under the pointer, saves it, and copies it to clipboard
+screenshot-menu: Rofi menu for area, window, or current-monitor screenshots
+screenshot-lib: shared screenshot helper functions
+volume-osd: handles volume up/down/mute and writes the current value to XOB
+xob-listener: owns the XOB FIFO and lock under ${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault
 ```
 
 ## Dunst Runtime And Theme
@@ -133,6 +156,18 @@ sudo pacman -S ffmpeg xdotool xorg-xwininfo libnotify
 | `custom-themes/builders/theme-build-micro` | `~/.config/custom-themes/orchis-dark.micro` |
 
 All builders source `custom-themes/builders/theme-build-lib`, which loads the generic palette from `custom-themes/color-palette/orchis-dark-palette.sh`. App-specific color decisions belong in the app builders, not in the palette.
+
+Builder and installer group names are listed in `scripts/lib/vault-registry.sh`. `custom-themes/builders/theme-builder` and `installers/install-interactive` use that registry to avoid duplicated app lists.
+
+## Validation
+
+Run the full repo validation suite with:
+
+```bash
+scripts/validate
+```
+
+It checks shell syntax, theme generation, installer dry-runs, stale references, Dunst config parsing, basic Polybar script output, registry consistency, and optional ShellCheck when available.
 
 ## Installers
 

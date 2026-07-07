@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pipe="/tmp/xobpipe"
-lock="/tmp/xob-volume-listener.lock"
+state_dir="${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault"
+pipe="$state_dir/xobpipe"
+lock="$state_dir/xob-volume-listener.lock"
+
+if ! command -v xob >/dev/null 2>&1; then
+    exit 0
+fi
+
+mkdir -p "$state_dir"
 
 exec 9>"$lock"
 flock -n 9 || exit 0
