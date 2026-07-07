@@ -1,1 +1,2 @@
 betterlockscreen
+oh-my-posh-bin

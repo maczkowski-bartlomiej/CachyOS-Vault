@@ -40,6 +40,12 @@ check_shell_syntax() {
     )
 }
 
+check_zsh_config() {
+    zsh -n "$REPO_ROOT/custom-configs/Zsh/.zshrc"
+    jq -e . "$REPO_ROOT/custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json" >/dev/null
+    ! rg -n 'p10k-instant|\.p10k|source .*powerlevel10k|cachyos-zsh-config' "$REPO_ROOT/custom-configs/Zsh"
+}
+
 check_theme_builder() {
     local tmp_home
 
@@ -103,6 +109,9 @@ check_installer_dry_run() {
     test -x "$tmp_home/.config/polybar/scripts/polybar-script-lib.sh"
     test -x "$tmp_home/.config/polybar/scripts/audio-player.sh"
     test -f "$tmp_home/.config/alacritty/alacritty.toml"
+    test -f "$tmp_home/.zshrc"
+    test -f "$tmp_home/.config/oh-my-posh/cachyos-compact.omp.json"
+    ! rg -n 'p10k-instant|\.p10k|source .*powerlevel10k|cachyos-zsh-config' "$tmp_home/.zshrc"
     test -f "$tmp_home/.config/micro/settings.json"
     test -f "$tmp_home/.config/micro/colorschemes/orchis-dark.micro"
     test -f "$tmp_home/.config/picom/picom.conf"
@@ -170,8 +179,11 @@ check_package_manifests() {
     done
 
     rg -q '^btrfs-progs$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^oh-my-zsh-git$' "$REPO_ROOT/packages/core.txt"
     rg -q '^pacman-contrib$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^zsh$' "$REPO_ROOT/packages/core.txt"
     rg -q '^betterlockscreen$' "$REPO_ROOT/packages/aur.txt"
+    rg -q '^oh-my-posh-bin$' "$REPO_ROOT/packages/aur.txt"
 }
 
 check_stale_names() {
@@ -243,6 +255,7 @@ check_shellcheck_if_available() {
 cd "$REPO_ROOT"
 
 run_check "Shell syntax" check_shell_syntax
+run_check "Zsh config" check_zsh_config
 run_check "Theme builder dry run" check_theme_builder
 run_check "Installer dry run" check_installer_dry_run
 run_check "GTK bookmarks config" check_gtk_bookmarks

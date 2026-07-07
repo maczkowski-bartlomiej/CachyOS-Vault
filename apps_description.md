@@ -56,6 +56,7 @@ custom-themes/builders/theme-build
 | Betterlockscreen | `custom-configs/BetterLockScreen/betterlockscreenrc` | `~/.config/betterlockscreen/betterlockscreenrc` | `~/.config/custom-themes/betterlockscreenrc` | Installer copies the generated full config | Uses the Orchis palette for i3lock-color values; package is listed in `packages/aur.txt`. |
 | Ly | `custom-configs/Ly/config.ini`, `custom-configs/Ly/xsessions/i3.desktop` | `/etc/ly/config.ini`, `/etc/ly/xsessions/i3.desktop` | `~/.config/custom-themes/ly-config.ini` | Installer copies the managed i3 XSession first, then the generated full config with sudo | Modernized solid dark TTY login; uses a managed plain i3 XSession and disables shell/xinitrc/Wayland session choices. System install is skipped when `VAULT_SKIP_SYSTEM_CONFIGS=1`. |
 | Alacritty | `custom-configs/Alacritty/alacritty.toml` | `~/.config/alacritty/alacritty.toml` | `~/.config/custom-themes/alacritty-theme.toml` | `import = ["~/.config/custom-themes/alacritty-theme.toml"]` | TOML theme import generated from the central palette. |
+| Zsh | `custom-configs/Zsh/.zshrc`, `custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json` | `~/.zshrc`, `~/.config/oh-my-posh/cachyos-compact.omp.json` | none | `eval "$(oh-my-posh init zsh --config ~/.config/oh-my-posh/cachyos-compact.omp.json)"` | Compact Oh My Posh prompt matching the old Powerlevel10k-style layout without sourcing Powerlevel10k. |
 | Micro | `custom-configs/Micro/settings.json` | `~/.config/micro/settings.json` | `~/.config/custom-themes/orchis-dark.micro` | `"colorscheme": "orchis-dark"` | Micro loads named colorschemes from `~/.config/micro/colorschemes`; installer copies the generated theme to `~/.config/micro/colorschemes/orchis-dark.micro`. |
 | Picom | `custom-configs/Picom/picom.conf` | `~/.config/picom/picom.conf` | none | none | No clean include/import mechanism is currently documented here; restart Picom manually or restart i3 if needed. |
 | nwg-look | `custom-configs/I3/nwg-look/config` | `~/.config/nwg-look/config` | none | n/a | `install-all` may launch `nwg-look`; no-nwg and `VAULT_SKIP_NWG_LOOK=1` skip it. |
@@ -138,6 +139,34 @@ screenshot-menu: Rofi menu for area, window, or current-monitor screenshots
 screenshot-lib: shared screenshot helper functions
 volume-osd: handles volume up/down/mute and writes the current value to XOB
 xob-listener: owns the XOB FIFO and lock under ${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault
+```
+
+## Zsh And Oh My Posh
+
+Config:
+
+```text
+Repo zshrc: custom-configs/Zsh/.zshrc
+Target zshrc: ~/.zshrc
+Repo prompt: custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json
+Target prompt: ~/.config/oh-my-posh/cachyos-compact.omp.json
+```
+
+Behavior:
+
+```text
+Prompt engine: oh-my-posh
+Layout: compact single-line powerline prompt with OS, path, and Git branch segments
+Fallback: if oh-my-posh is missing, zsh uses a simpler local prompt with the same segment shape
+Powerlevel10k: not sourced
+CachyOS zsh wrapper: not sourced, because it loads Powerlevel10k
+```
+
+Dependencies:
+
+```text
+Core: zsh, oh-my-zsh-git, zsh-autosuggestions, zsh-history-substring-search, zsh-syntax-highlighting, fzf, pkgfile, zoxide
+AUR: oh-my-posh-bin
 ```
 
 ## Redshift Night Light

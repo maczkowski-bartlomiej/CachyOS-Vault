@@ -20,6 +20,7 @@ VAULT_CONFIG_GROUPS=(
     betterlockscreen
     ly
     alacritty
+    zsh
     micro
     picom
     nwg-look

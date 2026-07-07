@@ -87,3 +87,4 @@ I3 helper scripts are installed from `custom-configs/I3/scripts/*`; volume OSD s
 Rofi is launched through `~/.config/i3/scripts/rofi-launcher` so Flatpak desktop entries are visible in `drun`.
 Drive automounts are sourced from `custom-configs/System/fstab-drive-automounts` and installed as a managed `/etc/fstab` block.
 Thunar Places entries for those drives are sourced from `custom-configs/GTK/bookmarks`.
+Zsh is installed from `custom-configs/Zsh/.zshrc` with an Oh My Posh prompt from `custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json`.

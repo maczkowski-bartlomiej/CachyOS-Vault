@@ -139,6 +139,11 @@ install_alacritty() {
     copy_file "$REPO_ROOT/custom-configs/Alacritty/alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"
 }
 
+install_zsh() {
+    copy_file "$REPO_ROOT/custom-configs/Zsh/.zshrc" "$HOME/.zshrc"
+    copy_file "$REPO_ROOT/custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json" "$HOME/.config/oh-my-posh/cachyos-compact.omp.json"
+}
+
 install_micro() {
     ensure_generated_theme "$HOME/.config/custom-themes/orchis-dark.micro" theme-build-micro
     copy_file "$REPO_ROOT/custom-configs/Micro/settings.json" "$HOME/.config/micro/settings.json"
@@ -425,6 +430,7 @@ install_app_config() {
             reload_polybar
             ;;
         alacritty) install_alacritty ;;
+        zsh) install_zsh ;;
         micro) install_micro ;;
         picom)
             install_picom
@@ -456,6 +462,7 @@ install_all_configs() {
     install_ly
     install_polybar
     install_alacritty
+    install_zsh
     install_micro
     install_picom
     install_nwg_look_config
