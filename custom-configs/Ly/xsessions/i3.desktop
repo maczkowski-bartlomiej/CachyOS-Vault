@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=i3
+Comment=Improved dynamic tiling window manager
+Exec=/usr/bin/i3
+TryExec=/usr/bin/i3
+Type=XSession
+DesktopNames=i3

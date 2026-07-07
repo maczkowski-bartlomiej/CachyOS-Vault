@@ -54,7 +54,7 @@ custom-themes/builders/theme-build
 | Polybar | `custom-configs/Polybar/config.ini` | `~/.config/polybar/config.ini` | `~/.config/custom-themes/polybar-theme.ini` | `include-file = ~/.config/custom-themes/polybar-theme.ini` | `launch.sh` and `scripts/*` are installed executable; focused workspace keeps the existing green color. |
 | Dunst | `custom-configs/Dunst/dunstrc` | `~/.config/dunst/dunstrc` | `~/.config/custom-themes/dunst-theme.dunstrc` | `~/.config/dunst/dunstrc.d/90-vault-theme.conf` symlink | Compact top-right notifications; low/normal time out after 2 seconds, critical stays until dismissed; installer reloads Dunst with `dunstctl reload` when available. |
 | Betterlockscreen | `custom-configs/BetterLockScreen/betterlockscreenrc` | `~/.config/betterlockscreen/betterlockscreenrc` | `~/.config/custom-themes/betterlockscreenrc` | Installer copies the generated full config | Uses the Orchis palette for i3lock-color values; package is listed in `packages/aur.txt`. |
-| Ly | `custom-configs/Ly/config.ini` | `/etc/ly/config.ini` | `~/.config/custom-themes/ly-config.ini` | Installer copies the generated full config with sudo | System config install is skipped when `VAULT_SKIP_SYSTEM_CONFIGS=1`; generated config disables empty-password login. |
+| Ly | `custom-configs/Ly/config.ini`, `custom-configs/Ly/xsessions/i3.desktop` | `/etc/ly/config.ini`, `/etc/ly/xsessions/i3.desktop` | `~/.config/custom-themes/ly-config.ini` | Installer copies the managed i3 XSession first, then the generated full config with sudo | Modernized solid dark TTY login; uses a managed plain i3 XSession and disables shell/xinitrc/Wayland session choices. System install is skipped when `VAULT_SKIP_SYSTEM_CONFIGS=1`. |
 | Alacritty | `custom-configs/Alacritty/alacritty.toml` | `~/.config/alacritty/alacritty.toml` | `~/.config/custom-themes/alacritty-theme.toml` | `import = ["~/.config/custom-themes/alacritty-theme.toml"]` | TOML theme import generated from the central palette. |
 | Micro | `custom-configs/Micro/settings.json` | `~/.config/micro/settings.json` | `~/.config/custom-themes/orchis-dark.micro` | `"colorscheme": "orchis-dark"` | Micro loads named colorschemes from `~/.config/micro/colorschemes`; installer copies the generated theme to `~/.config/micro/colorschemes/orchis-dark.micro`. |
 | Picom | `custom-configs/Picom/picom.conf` | `~/.config/picom/picom.conf` | none | none | No clean include/import mechanism is currently documented here; restart Picom manually or restart i3 if needed. |
@@ -253,9 +253,12 @@ Ly:
 
 ```text
 Repo config: custom-configs/Ly/config.ini
+Repo managed XSession: custom-configs/Ly/xsessions/i3.desktop
 Repo builder: custom-themes/builders/theme-build-ly
 Generated target: ~/.config/custom-themes/ly-config.ini
 Installed target: /etc/ly/config.ini
+Installed XSession target: /etc/ly/xsessions/i3.desktop
+Session policy: plain i3 only; shell, xinitrc, Wayland sessions, and saved session state are disabled
 Install note: requires sudo unless run as root; set VAULT_SKIP_SYSTEM_CONFIGS=1 to skip /etc writes
 ```
 

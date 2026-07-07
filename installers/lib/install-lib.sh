@@ -119,6 +119,7 @@ install_betterlockscreen() {
 
 install_ly() {
     ensure_generated_theme "$HOME/.config/custom-themes/ly-config.ini" theme-build-ly
+    copy_system_file "$REPO_ROOT/custom-configs/Ly/xsessions/i3.desktop" "/etc/ly/xsessions/i3.desktop" 0644
     copy_system_file "$HOME/.config/custom-themes/ly-config.ini" "/etc/ly/config.ini" 0644
 }
 
