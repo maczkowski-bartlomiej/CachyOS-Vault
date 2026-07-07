@@ -31,23 +31,19 @@ Generated files:
 
 ## Installers
 
-Install core system packages used by this repo:
+Install packages from the manifests under `packages/`:
 
 ```bash
-sudo pacman -S --needed - < packages/core.txt
+installers/install-packages
 ```
 
-Install personal apps:
+For a narrower run, pass one or more groups:
 
 ```bash
-sudo pacman -S --needed - < packages/apps.txt
+installers/install-packages --core --apps --aur --flatpak
 ```
 
-Install AUR-only dependencies:
-
-```bash
-xargs -r -a packages/aur.txt paru -S --needed
-```
+`installers/install-packages` uses `pacman` for `packages/core.txt` and `packages/apps.txt`, `paru` or `yay` for `packages/aur.txt`, and `flatpak` for `packages/flatpak.txt`. Flatpak installation uses a user `flathub` remote when available, otherwise a system `flathub` remote.
 
 Install all configs:
 
@@ -75,7 +71,7 @@ Run the repo validation suite:
 scripts/validate
 ```
 
-See `apps_description.md` for the supported app index. Per-app notes live under `docs/apps/`.
+Per-app notes live under `docs/apps/`.
 
 I3 helper scripts are installed from `custom-configs/I3/scripts/*`; volume OSD state is kept under `${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault`.
 Rofi is launched through `~/.config/i3/scripts/rofi-launcher` so Flatpak desktop entries are visible in `drun`.

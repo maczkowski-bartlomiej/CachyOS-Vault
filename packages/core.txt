@@ -9,7 +9,7 @@ ffmpeg
 flatpak
 fzf
 gsimplecal
-i3lock
+i3lock-color
 jq
 libnotify
 libpulse
@@ -48,5 +48,5 @@ zsh-autosuggestions
 zsh-history-substring-search
 zsh-syntax-highlighting
 zoxide
-KolourPaint
-Viewnior
+kolourpaint
+viewnior

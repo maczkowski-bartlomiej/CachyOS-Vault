@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=../scripts/lib/vault-lib.sh
+source "$REPO_ROOT/scripts/lib/vault-lib.sh"
+
+MANIFEST_PACKAGES=()
+
+usage() {
+    cat <<'USAGE'
+Usage: installers/install-packages [--all] [--pacman] [--core] [--apps] [--aur] [--flatpak]
+
+With no flags, installs every package manifest in this order:
+  core, apps, AUR, Flatpak
+
+Options:
+  --all       install every package manifest
+  --pacman    install core and apps manifests
+  --core      install packages/core.txt with pacman
+  --apps      install packages/apps.txt with pacman
+  --aur       install packages/aur.txt with paru/yay
+  --flatpak   install packages/flatpak.txt with flatpak
+  -h, --help  show this help
+
+Environment:
+  VAULT_AUR_HELPER=paru|yay
+  VAULT_SKIP_AUR=1
+  VAULT_SKIP_FLATPAK=1
+  VAULT_FLATPAK_REMOTE=flathub
+  VAULT_FLATPAK_SCOPE=auto|user|system|none
+USAGE
+}
+
+read_manifest() {
+    local manifest="${1:?manifest required}"
+    local package
+
+    require_file "$manifest"
+    MANIFEST_PACKAGES=()
+
+    while IFS= read -r package || [[ -n "$package" ]]; do
+        [[ -n "$package" ]] || continue
+        [[ "$package" != \#* ]] || continue
+        [[ "$package" != *[[:space:]]* ]] || die "Manifest entries must not contain whitespace: $manifest: $package"
+        MANIFEST_PACKAGES+=("$package")
+    done < "$manifest"
+}
+
+run_as_root() {
+    if ((EUID == 0)); then
+        "$@"
+    elif command_exists sudo; then
+        sudo "$@"
+    else
+        die "sudo is required to run: $*"
+    fi
+}
+
+install_pacman_manifest() {
+    local label="${1:?label required}"
+    local manifest="${2:?manifest required}"
+
+    read_manifest "$manifest"
+    if ((${#MANIFEST_PACKAGES[@]} == 0)); then
+        log_warn "No $label packages listed in ${manifest#$REPO_ROOT/}"
+        return 0
+    fi
+
+    log_info "Installing $label packages from ${manifest#$REPO_ROOT/}"
+    run_as_root pacman -S --needed "${MANIFEST_PACKAGES[@]}"
+}
+
+detect_aur_helper() {
+    if [[ -n "${VAULT_AUR_HELPER:-}" ]]; then
+        command_exists "$VAULT_AUR_HELPER" || die "AUR helper not found: $VAULT_AUR_HELPER"
+        printf '%s\n' "$VAULT_AUR_HELPER"
+    elif command_exists paru; then
+        printf '%s\n' paru
+    elif command_exists yay; then
+        printf '%s\n' yay
+    else
+        die "No AUR helper found. Install paru/yay or set VAULT_AUR_HELPER."
+    fi
+}
+
+install_aur_manifest() {
+    local manifest="$REPO_ROOT/packages/aur.txt"
+    local helper
+
+    if [[ -n "${VAULT_SKIP_AUR:-}" ]]; then
+        log_info "Skipped AUR packages because VAULT_SKIP_AUR is set"
+        return 0
+    fi
+
+    read_manifest "$manifest"
+    if ((${#MANIFEST_PACKAGES[@]} == 0)); then
+        log_warn "No AUR packages listed in ${manifest#$REPO_ROOT/}"
+        return 0
+    fi
+
+    helper="$(detect_aur_helper)"
+    log_info "Installing AUR packages from ${manifest#$REPO_ROOT/} with $helper"
+    "$helper" -S --needed "${MANIFEST_PACKAGES[@]}"
+}
+
+flatpak_remote_exists() {
+    local scope="${1:?scope required}"
+    local remote="${2:?remote required}"
+    local name
+
+    while IFS= read -r name; do
+        [[ "$name" == "$remote" ]] && return 0
+    done < <(flatpak remotes "--$scope" --columns=name 2>/dev/null || true)
+
+    return 1
+}
+
+resolve_flatpak_scope_args() {
+    local remote="${1:?remote required}"
+    local scope="${VAULT_FLATPAK_SCOPE:-auto}"
+
+    case "$scope" in
+        auto)
+            if flatpak_remote_exists user "$remote"; then
+                FLATPAK_SCOPE_ARGS=(--user)
+            elif flatpak_remote_exists system "$remote"; then
+                FLATPAK_SCOPE_ARGS=(--system)
+            else
+                die "Flatpak remote not found: $remote. Add it or set VAULT_FLATPAK_REMOTE."
+            fi
+            ;;
+        user)
+            flatpak_remote_exists user "$remote" || die "Flatpak user remote not found: $remote"
+            FLATPAK_SCOPE_ARGS=(--user)
+            ;;
+        system)
+            flatpak_remote_exists system "$remote" || die "Flatpak system remote not found: $remote"
+            FLATPAK_SCOPE_ARGS=(--system)
+            ;;
+        none|"")
+            FLATPAK_SCOPE_ARGS=()
+            ;;
+        *) die "VAULT_FLATPAK_SCOPE must be auto, user, system, or none" ;;
+    esac
+}
+
+install_flatpak_manifest() {
+    local manifest="$REPO_ROOT/packages/flatpak.txt"
+    local remote="${VAULT_FLATPAK_REMOTE:-flathub}"
+
+    if [[ -n "${VAULT_SKIP_FLATPAK:-}" ]]; then
+        log_info "Skipped Flatpak packages because VAULT_SKIP_FLATPAK is set"
+        return 0
+    fi
+
+    command_exists flatpak || die "flatpak is required to install ${manifest#$REPO_ROOT/}"
+
+    read_manifest "$manifest"
+    if ((${#MANIFEST_PACKAGES[@]} == 0)); then
+        log_warn "No Flatpak packages listed in ${manifest#$REPO_ROOT/}"
+        return 0
+    fi
+
+    resolve_flatpak_scope_args "$remote"
+
+    log_info "Installing Flatpak packages from ${manifest#$REPO_ROOT/}"
+    flatpak install -y "${FLATPAK_SCOPE_ARGS[@]}" "$remote" "${MANIFEST_PACKAGES[@]}"
+}
+
+install_core=0
+install_apps=0
+install_aur=0
+install_flatpak=0
+
+if (($# == 0)); then
+    set -- --all
+fi
+
+while (($# > 0)); do
+    case "$1" in
+        --all)
+            install_core=1
+            install_apps=1
+            install_aur=1
+            install_flatpak=1
+            ;;
+        --pacman)
+            install_core=1
+            install_apps=1
+            ;;
+        --core) install_core=1 ;;
+        --apps) install_apps=1 ;;
+        --aur) install_aur=1 ;;
+        --flatpak) install_flatpak=1 ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *) die "Unknown option: $1" ;;
+    esac
+    shift
+done
+
+if ((install_core)); then
+    install_pacman_manifest core "$REPO_ROOT/packages/core.txt"
+fi
+
+if ((install_apps)); then
+    install_pacman_manifest apps "$REPO_ROOT/packages/apps.txt"
+fi
+
+if ((install_aur)); then
+    install_aur_manifest
+fi
+
+if ((install_flatpak)); then
+    install_flatpak_manifest
+fi

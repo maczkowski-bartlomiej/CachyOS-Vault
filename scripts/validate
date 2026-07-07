@@ -194,7 +194,7 @@ check_stale_names() {
         -g '!scripts/validate' \
         -g '!*.jpg' \
         -g '!*.png'
-    ! rg -n 'screenshot-current-monito([^r]|$)' "$REPO_ROOT/custom-configs" "$REPO_ROOT/apps_description.md" "$REPO_ROOT/README.md" \
+    ! rg -n 'screenshot-current-monito([^r]|$)' "$REPO_ROOT/custom-configs" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
         -g '!*.jpg' \
         -g '!*.png'
 }
@@ -231,7 +231,7 @@ check_registry() {
 
     for builder in "${VAULT_THEME_BUILDERS[@]}"; do
         test -x "$REPO_ROOT/custom-themes/builders/$builder"
-        rg -q "$builder" "$REPO_ROOT/apps_description.md" "$REPO_ROOT/docs"
+        rg -q "$builder" "$REPO_ROOT/docs"
     done
 
     for group in "${VAULT_CONFIG_GROUPS[@]}"; do

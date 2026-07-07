@@ -2,6 +2,18 @@
 
 ## Entrypoints
 
+Install packages from `packages/core.txt`, `packages/apps.txt`, `packages/aur.txt`, and `packages/flatpak.txt`:
+
+```bash
+installers/install-packages
+```
+
+Install only selected package groups:
+
+```bash
+installers/install-packages --core --apps --aur --flatpak
+```
+
 Install all configs without launching `nwg-look`:
 
 ```bash
@@ -18,6 +30,8 @@ The old interactive installer has been removed. Config group names still live in
 
 ## Behavior
 
+`installers/install-packages` installs pacman manifests first, then AUR packages, then Flatpak apps. It defaults to `paru` or `yay` for AUR packages. For Flatpak, it uses a user `flathub` remote when available, otherwise a system `flathub` remote.
+
 The installers share implementation through `installers/lib/install-lib.sh`. They use `install -D`, respect `$HOME`, log every copied file, and do not delete files or create backups.
 
 `installers/install-all` still installs the managed `nwg-look` config file; it only avoids launching the GUI. Use `installers/install-all-with-nwg-look` for the GUI pass.
@@ -28,6 +42,11 @@ The installers share implementation through `installers/lib/install-lib.sh`. The
 VAULT_SKIP_NWG_LOOK=1
 VAULT_SKIP_RELOAD=1
 VAULT_SKIP_SYSTEM_CONFIGS=1
+VAULT_AUR_HELPER=paru
+VAULT_SKIP_AUR=1
+VAULT_SKIP_FLATPAK=1
+VAULT_FLATPAK_REMOTE=flathub
+VAULT_FLATPAK_SCOPE=auto
 ```
 
 System-level installer groups such as Ly, drive automounts, and system tweaks may use sudo. Set `VAULT_SKIP_SYSTEM_CONFIGS=1` for a user-only install or dry run.
