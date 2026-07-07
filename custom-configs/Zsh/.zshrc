@@ -24,6 +24,11 @@ export HISTORY_IGNORE="(&|[bf]g|c|clear|history|exit|q|pwd|* --help)"
 export LESS_TERMCAP_md="$(tput bold 2> /dev/null; tput setaf 2 2> /dev/null)"
 export LESS_TERMCAP_me="$(tput sgr0 2> /dev/null)"
 
+alias ls='ls --color=auto --group-directories-first'
+alias ll='ls -lh --color=auto --group-directories-first'
+alias la='ls -lAh --color=auto --group-directories-first'
+alias l='ls -lah --color=auto --group-directories-first'
+
 alias nano='micro'
 alias make="make -j$(nproc)"
 alias ninja="ninja -j$(nproc)"
