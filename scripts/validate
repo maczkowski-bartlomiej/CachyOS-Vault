@@ -106,9 +106,23 @@ check_installer_dry_run() {
     test -f "$tmp_home/.config/micro/settings.json"
     test -f "$tmp_home/.config/micro/colorschemes/orchis-dark.micro"
     test -f "$tmp_home/.config/picom/picom.conf"
+    test -f "$tmp_home/.config/gtk-3.0/bookmarks"
+    test -f "$tmp_home/.config/gtk-4.0/bookmarks"
+    rg -q '^file:///mnt/dev Dev$' "$tmp_home/.config/gtk-3.0/bookmarks"
+    rg -q '^file:///mnt/dev-data Dev Data$' "$tmp_home/.config/gtk-3.0/bookmarks"
+    rg -q '^file:///mnt/data-hdd Data HDD$' "$tmp_home/.config/gtk-3.0/bookmarks"
 
     rm -rf "$tmp_home"
     trap - RETURN
+}
+
+check_gtk_bookmarks() {
+    local src="$REPO_ROOT/custom-configs/GTK/bookmarks"
+
+    require_file "$src"
+    rg -q '^file:///mnt/dev Dev$' "$src"
+    rg -q '^file:///mnt/dev-data Dev Data$' "$src"
+    rg -q '^file:///mnt/data-hdd Data HDD$' "$src"
 }
 
 check_drive_automounts() {
@@ -231,6 +245,7 @@ cd "$REPO_ROOT"
 run_check "Shell syntax" check_shell_syntax
 run_check "Theme builder dry run" check_theme_builder
 run_check "Installer dry run" check_installer_dry_run
+run_check "GTK bookmarks config" check_gtk_bookmarks
 run_check "Drive automount config" check_drive_automounts
 run_check "Package manifests" check_package_manifests
 run_check "Stale-name scan" check_stale_names

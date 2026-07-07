@@ -23,6 +23,7 @@ VAULT_CONFIG_GROUPS=(
     micro
     picom
     nwg-look
+    gtk-bookmarks
     cursor-hardening
     wallpaper
     i3-scripts

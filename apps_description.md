@@ -59,6 +59,7 @@ custom-themes/builders/theme-build
 | Micro | `custom-configs/Micro/settings.json` | `~/.config/micro/settings.json` | `~/.config/custom-themes/orchis-dark.micro` | `"colorscheme": "orchis-dark"` | Micro loads named colorschemes from `~/.config/micro/colorschemes`; installer copies the generated theme to `~/.config/micro/colorschemes/orchis-dark.micro`. |
 | Picom | `custom-configs/Picom/picom.conf` | `~/.config/picom/picom.conf` | none | none | No clean include/import mechanism is currently documented here; restart Picom manually or restart i3 if needed. |
 | nwg-look | `custom-configs/I3/nwg-look/config` | `~/.config/nwg-look/config` | none | n/a | `install-all` may launch `nwg-look`; no-nwg and `VAULT_SKIP_NWG_LOOK=1` skip it. |
+| GTK bookmarks | `custom-configs/GTK/bookmarks` | `~/.config/gtk-3.0/bookmarks`, `~/.config/gtk-4.0/bookmarks` | none | GTK bookmarks / Thunar Places | Adds labeled Places entries for `/mnt/dev`, `/mnt/dev-data`, and `/mnt/data-hdd` while preserving unrelated existing bookmarks. |
 | Cursor hardening | `custom-configs/I3/cursor-hardening/index.theme`, `.Xresources` | `~/.icons/default/index.theme`, `~/.Xresources` | none | `xrdb -merge ~/.Xresources` | Uses `Bibata-Modern-Ice`; `xrdb` merge is skipped when `VAULT_SKIP_RELOAD=1` or `xrdb` is unavailable. |
 | Wallpaper | `custom-themes/wallpaper/wallpaper.jpg` | `~/.config/i3/wallpaper.jpg` | none | `exec feh --bg-fill ~/.config/i3/wallpaper.jpg` | Installed as part of all configs or as a separate interactive group. |
 | I3 scripts | `custom-configs/I3/scripts/*` | `~/.config/i3/scripts/*` | none | referenced by `custom-configs/I3/config` | Installed executable. Includes helpers for screenshots, volume/XOB, Picom restart, mouse warping, and XOB listening. Included in the `i3` installer group and also selectable as `i3-scripts` in the interactive installer. |
@@ -184,6 +185,8 @@ Drive automount source:
 Repo: custom-configs/System/fstab-drive-automounts
 Install target: managed CachyOS-Vault block in /etc/fstab
 Mount targets: /mnt/dev, /mnt/dev-data, /mnt/data-hdd
+GTK/Thunar Places source: custom-configs/GTK/bookmarks
+GTK/Thunar Places targets: ~/.config/gtk-3.0/bookmarks, ~/.config/gtk-4.0/bookmarks
 ```
 
 Behavior:
@@ -193,6 +196,7 @@ Behavior:
 /mnt/dev-data: NTFS, user-writable, automounted on access
 /mnt/data-hdd: Btrfs, noatime, zstd compression, automounted on access
 All entries use nofail and a short systemd device timeout so missing drives do not block boot.
+Thunar should use the Places bookmarks for these paths instead of the raw disk entries under Devices.
 ```
 
 System tweaks:

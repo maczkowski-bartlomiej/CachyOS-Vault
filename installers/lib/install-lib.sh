@@ -153,6 +153,49 @@ install_nwg_look_config() {
     copy_file "$REPO_ROOT/custom-configs/I3/nwg-look/config" "$HOME/.config/nwg-look/config"
 }
 
+install_gtk_bookmark_file() {
+    local src="${1:?source required}"
+    local dest="${2:?destination required}"
+    local line next tmp uri
+
+    require_file "$src"
+    ensure_dir "$(dirname -- "$dest")"
+
+    tmp="$(mktemp)"
+    if [[ -f "$dest" ]]; then
+        cat "$dest" > "$tmp"
+    else
+        : > "$tmp"
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -n "$line" ]] || continue
+        uri="${line%% *}"
+        next="$(mktemp)"
+        awk -v uri="$uri" '
+            {
+                split($0, fields, /[[:space:]]+/)
+                if (fields[1] != uri) {
+                    print
+                }
+            }
+        ' "$tmp" > "$next"
+        mv "$next" "$tmp"
+        printf '%s\n' "$line" >> "$tmp"
+    done < "$src"
+
+    install -m 0644 "$tmp" "$dest"
+    rm -f "$tmp"
+    log_ok "Installed GTK bookmarks in $dest"
+}
+
+install_gtk_bookmarks() {
+    local src="$REPO_ROOT/custom-configs/GTK/bookmarks"
+
+    install_gtk_bookmark_file "$src" "$HOME/.config/gtk-3.0/bookmarks"
+    install_gtk_bookmark_file "$src" "$HOME/.config/gtk-4.0/bookmarks"
+}
+
 install_wallpaper() {
     copy_file "$REPO_ROOT/custom-themes/wallpaper/wallpaper.jpg" "$HOME/.config/i3/wallpaper.jpg"
 }
@@ -388,6 +431,7 @@ install_app_config() {
             reload_picom_if_safe
             ;;
         nwg-look) install_nwg_look_config ;;
+        gtk-bookmarks) install_gtk_bookmarks ;;
         cursor-hardening) apply_cursor_hardening ;;
         wallpaper) install_wallpaper ;;
         drive-automounts) install_drive_automounts ;;
@@ -415,6 +459,7 @@ install_all_configs() {
     install_micro
     install_picom
     install_nwg_look_config
+    install_gtk_bookmarks
     install_wallpaper
     install_drive_automounts
     apply_system_tweaks

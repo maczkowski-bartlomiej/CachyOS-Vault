@@ -86,3 +86,4 @@ See `apps_description.md` for supported apps, install targets, generated theme p
 I3 helper scripts are installed from `custom-configs/I3/scripts/*`; volume OSD state is kept under `${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault`.
 Rofi is launched through `~/.config/i3/scripts/rofi-launcher` so Flatpak desktop entries are visible in `drun`.
 Drive automounts are sourced from `custom-configs/System/fstab-drive-automounts` and installed as a managed `/etc/fstab` block.
+Thunar Places entries for those drives are sourced from `custom-configs/GTK/bookmarks`.
