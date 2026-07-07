@@ -1,5 +1,6 @@
 alacritty
 brightnessctl
+btrfs-progs
 curl
 dex
 dunst
@@ -15,6 +16,7 @@ ly
 maim
 micro
 orchis-theme
+pacman-contrib
 pamixer
 papirus-icon-theme
 pavucontrol

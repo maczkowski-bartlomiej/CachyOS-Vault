@@ -48,6 +48,21 @@ copy_system_file() {
     log_ok "Installed system config $dest"
 }
 
+run_system_command() {
+    if [[ -n "${VAULT_SKIP_SYSTEM_CONFIGS:-}" ]]; then
+        log_info "Skipped system command because VAULT_SKIP_SYSTEM_CONFIGS is set: $*"
+        return 0
+    fi
+
+    if ((EUID == 0)); then
+        "$@"
+    elif command_exists sudo; then
+        sudo "$@"
+    else
+        die "sudo is required to run: $*"
+    fi
+}
+
 run_theme_builders() {
     log_info "Running theme builders"
     "$REPO_ROOT/custom-themes/builders/theme-builder"
@@ -139,6 +154,100 @@ install_nwg_look_config() {
 
 install_wallpaper() {
     copy_file "$REPO_ROOT/custom-themes/wallpaper/wallpaper.jpg" "$HOME/.config/i3/wallpaper.jpg"
+}
+
+reload_systemd_if_safe() {
+    if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
+        log_info "Skipped systemd daemon-reload because VAULT_SKIP_RELOAD is set"
+    elif command_exists systemctl; then
+        run_system_command systemctl daemon-reload
+        log_ok "Reloaded systemd manager configuration"
+    else
+        log_warn "systemctl not found; skipped systemd daemon-reload"
+    fi
+}
+
+install_drive_automounts() {
+    local src="$REPO_ROOT/custom-configs/System/fstab-drive-automounts"
+    local begin="# BEGIN CachyOS-Vault drive automounts"
+    local end="# END CachyOS-Vault drive automounts"
+    local tmp fstab_file="/etc/fstab" validation_output
+
+    require_file "$src"
+
+    if [[ -n "${VAULT_SKIP_SYSTEM_CONFIGS:-}" ]]; then
+        log_info "Skipped drive automount install because VAULT_SKIP_SYSTEM_CONFIGS is set"
+        return 0
+    fi
+
+    run_system_command install -d -m 0755 /mnt/dev /mnt/dev-data /mnt/data-hdd
+
+    tmp="$(mktemp)"
+    if [[ -r "$fstab_file" ]]; then
+        awk -v begin="$begin" -v end="$end" '
+            $0 == begin { skip = 1; next }
+            $0 == end { skip = 0; next }
+            !skip { print }
+        ' "$fstab_file" > "$tmp"
+    else
+        : > "$tmp"
+    fi
+
+    {
+        printf '\n%s\n' "$begin"
+        cat "$src"
+        printf '%s\n' "$end"
+    } >> "$tmp"
+
+    if command_exists findmnt; then
+        validation_output="$(LC_ALL=C findmnt --verify --tab-file "$tmp" 2>&1 || true)"
+        if printf '%s\n' "$validation_output" | grep -Eq 'parse error at line|(^|[^0-9])[1-9][0-9]* parse error'; then
+            while IFS= read -r line; do
+                [[ -n "$line" ]] || continue
+                log_error "findmnt: $line"
+            done <<< "$validation_output"
+            rm -f "$tmp"
+            die "Generated fstab has parse errors"
+        fi
+    else
+        validation_output=""
+        log_warn "findmnt not found; skipped generated fstab validation"
+    fi
+
+    if [[ -n "$validation_output" ]]; then
+        while IFS= read -r line; do
+            [[ -n "$line" ]] || continue
+            [[ "$line" == *"0 parse errors"* ]] && continue
+            log_warn "findmnt: $line"
+        done <<< "$validation_output"
+    fi
+
+    run_system_command install -m 0644 "$tmp" "$fstab_file"
+    rm -f "$tmp"
+    log_ok "Installed managed drive automount block in $fstab_file"
+    reload_systemd_if_safe
+}
+
+enable_system_unit() {
+    local unit="${1:?systemd unit required}"
+
+    if [[ -n "${VAULT_SKIP_SYSTEM_CONFIGS:-}" ]]; then
+        log_info "Skipped enabling $unit because VAULT_SKIP_SYSTEM_CONFIGS is set"
+        return 0
+    fi
+
+    if command_exists systemctl; then
+        run_system_command systemctl enable --now "$unit"
+        log_ok "Enabled $unit"
+    else
+        log_warn "systemctl not found; skipped $unit"
+    fi
+}
+
+apply_system_tweaks() {
+    enable_system_unit paccache.timer
+    enable_system_unit 'btrfs-scrub@-.timer'
+    enable_system_unit 'btrfs-scrub@mnt-data\x2dhdd.timer'
 }
 
 apply_cursor_hardening() {
@@ -280,6 +389,8 @@ install_app_config() {
         nwg-look) install_nwg_look_config ;;
         cursor-hardening) apply_cursor_hardening ;;
         wallpaper) install_wallpaper ;;
+        drive-automounts) install_drive_automounts ;;
+        system-tweaks) apply_system_tweaks ;;
         *) die "Config group is registered but has no installer: $name" ;;
     esac
 }
@@ -304,6 +415,8 @@ install_all_configs() {
     install_picom
     install_nwg_look_config
     install_wallpaper
+    install_drive_automounts
+    apply_system_tweaks
     apply_cursor_hardening
     if reload_i3; then
         log_info "Skipped direct Polybar reload because i3 reload runs Polybar launch"

@@ -62,6 +62,8 @@ custom-themes/builders/theme-build
 | Cursor hardening | `custom-configs/I3/cursor-hardening/index.theme`, `.Xresources` | `~/.icons/default/index.theme`, `~/.Xresources` | none | `xrdb -merge ~/.Xresources` | Uses `Bibata-Modern-Ice`; `xrdb` merge is skipped when `VAULT_SKIP_RELOAD=1` or `xrdb` is unavailable. |
 | Wallpaper | `custom-themes/wallpaper/wallpaper.jpg` | `~/.config/i3/wallpaper.jpg` | none | `exec feh --bg-fill ~/.config/i3/wallpaper.jpg` | Installed as part of all configs or as a separate interactive group. |
 | I3 scripts | `custom-configs/I3/scripts/*` | `~/.config/i3/scripts/*` | none | referenced by `custom-configs/I3/config` | Installed executable. Includes helpers for screenshots, volume/XOB, Picom restart, mouse warping, and XOB listening. Included in the `i3` installer group and also selectable as `i3-scripts` in the interactive installer. |
+| Drive automounts | `custom-configs/System/fstab-drive-automounts` | managed block in `/etc/fstab` | none | systemd fstab automount units | Creates `/mnt/dev`, `/mnt/dev-data`, and `/mnt/data-hdd`; install is skipped when `VAULT_SKIP_SYSTEM_CONFIGS=1`. |
+| System tweaks | installer-managed | systemd unit state | none | `systemctl enable --now` | Enables `paccache.timer` and Btrfs scrub timers for `/` and `/mnt/data-hdd`; skipped when `VAULT_SKIP_SYSTEM_CONFIGS=1`. |
 
 ## Polybar Runtime And Scripts
 
@@ -174,6 +176,41 @@ The wrapper prepends these Flatpak export paths to `XDG_DATA_DIRS` before starti
 
 Flatpak apps then appear through Rofi `drun` from their exported `.desktop` files.
 
+## System Tweaks And Drive Automounts
+
+Drive automount source:
+
+```text
+Repo: custom-configs/System/fstab-drive-automounts
+Install target: managed CachyOS-Vault block in /etc/fstab
+Mount targets: /mnt/dev, /mnt/dev-data, /mnt/data-hdd
+```
+
+Behavior:
+
+```text
+/mnt/dev: NTFS, user-writable, automounted on access
+/mnt/dev-data: NTFS, user-writable, automounted on access
+/mnt/data-hdd: Btrfs, noatime, zstd compression, automounted on access
+All entries use nofail and a short systemd device timeout so missing drives do not block boot.
+```
+
+System tweaks:
+
+```text
+paccache.timer: keeps the pacman cache trimmed automatically
+btrfs-scrub@-.timer: periodic Btrfs scrub for /
+btrfs-scrub@mnt-data\x2dhdd.timer: periodic Btrfs scrub for /mnt/data-hdd
+```
+
+Install notes:
+
+```text
+These actions write to /etc/fstab or systemd unit state, so the installer uses sudo unless run as root.
+Set VAULT_SKIP_SYSTEM_CONFIGS=1 to skip them during validation or user-only installs.
+For shared NTFS writes, Windows Fast Startup/hibernation should stay disabled.
+```
+
 ## Dunst Runtime And Theme
 
 Config:
@@ -255,7 +292,7 @@ Run the full repo validation suite with:
 scripts/validate
 ```
 
-It checks shell syntax, theme generation, installer dry-runs, stale references, Dunst config parsing, basic Polybar script output, registry consistency, and optional ShellCheck when available.
+It checks shell syntax, theme generation, installer dry-runs, drive automount parsing, package manifest sorting, stale references, Dunst config parsing, basic Polybar script output, registry consistency, and optional ShellCheck when available.
 
 ## Installers
 

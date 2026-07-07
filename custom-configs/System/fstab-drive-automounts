@@ -1,0 +1,3 @@
+UUID=F85EFF175EFECCFE /mnt/dev ntfs3 rw,uid=1000,gid=1000,umask=022,windows_names,nofail,x-systemd.automount,x-systemd.idle-timeout=10min,x-systemd.device-timeout=5s 0 0
+UUID=4EBE9588BE95696B /mnt/dev-data ntfs3 rw,uid=1000,gid=1000,umask=022,windows_names,nofail,x-systemd.automount,x-systemd.idle-timeout=10min,x-systemd.device-timeout=5s 0 0
+UUID=16654759-f0f4-4933-bf8d-223be0319a42 /mnt/data-hdd btrfs rw,noatime,compress=zstd:1,nofail,x-systemd.automount,x-systemd.idle-timeout=10min,x-systemd.device-timeout=5s 0 0

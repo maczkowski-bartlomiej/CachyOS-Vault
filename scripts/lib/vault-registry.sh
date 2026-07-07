@@ -26,6 +26,8 @@ VAULT_CONFIG_GROUPS=(
     cursor-hardening
     wallpaper
     i3-scripts
+    drive-automounts
+    system-tweaks
 )
 
 vault_config_group_exists() {

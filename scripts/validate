@@ -97,6 +97,55 @@ check_installer_dry_run() {
     trap - RETURN
 }
 
+check_drive_automounts() {
+    local src="$REPO_ROOT/custom-configs/System/fstab-drive-automounts"
+    local line mountpoint options fields tmp output
+
+    require_file "$src"
+
+    rg -q '^UUID=F85EFF175EFECCFE[[:space:]]+/mnt/dev[[:space:]]+ntfs3[[:space:]]' "$src"
+    rg -q '^UUID=4EBE9588BE95696B[[:space:]]+/mnt/dev-data[[:space:]]+ntfs3[[:space:]]' "$src"
+    rg -q '^UUID=16654759-f0f4-4933-bf8d-223be0319a42[[:space:]]+/mnt/data-hdd[[:space:]]+btrfs[[:space:]]' "$src"
+    command_exists findmnt
+
+    while IFS= read -r line; do
+        [[ -n "$line" && "$line" != \#* ]] || continue
+        read -r -a fields <<< "$line"
+        [[ "${#fields[@]}" -eq 6 ]] || return 1
+
+        mountpoint="${fields[1]}"
+        options="${fields[3]}"
+        case "$mountpoint" in
+            /mnt/dev|/mnt/dev-data|/mnt/data-hdd) ;;
+            *) return 1 ;;
+        esac
+
+        [[ "$options" == *nofail* ]] || return 1
+        [[ "$options" == *x-systemd.automount* ]] || return 1
+        [[ "$options" == *x-systemd.device-timeout=5s* ]] || return 1
+    done < "$src"
+
+    tmp="$(mktemp)"
+    cat "$src" > "$tmp"
+    output="$(LC_ALL=C findmnt --verify --tab-file "$tmp" 2>&1 || true)"
+    rm -f "$tmp"
+
+    ! printf '%s\n' "$output" | grep -Eq 'parse error at line|(^|[^0-9])[1-9][0-9]* parse error'
+}
+
+check_package_manifests() {
+    local file
+
+    for file in "$REPO_ROOT"/packages/core.txt "$REPO_ROOT"/packages/apps.txt "$REPO_ROOT"/packages/aur.txt; do
+        LC_ALL=C sort -c "$file"
+        ! grep -n '^[[:space:]]*$\|[[:space:]]#' "$file"
+    done
+
+    rg -q '^btrfs-progs$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^pacman-contrib$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^betterlockscreen$' "$REPO_ROOT/packages/aur.txt"
+}
+
 check_stale_names() {
     ! rg -n 'ytmusic\.sh|powermenu\.sh|polybar-theme\.sh' "$REPO_ROOT" \
         -g '!scripts/validate' \
@@ -168,6 +217,8 @@ cd "$REPO_ROOT"
 run_check "Shell syntax" check_shell_syntax
 run_check "Theme builder dry run" check_theme_builder
 run_check "Installer dry run" check_installer_dry_run
+run_check "Drive automount config" check_drive_automounts
+run_check "Package manifests" check_package_manifests
 run_check "Stale-name scan" check_stale_names
 run_check "Dunst config parse" check_dunst_config
 run_check "Polybar smoke tests" check_polybar_smoke

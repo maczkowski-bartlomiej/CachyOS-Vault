@@ -37,6 +37,8 @@ core.txt includes papirus-icon-theme because the Dunst config explicitly uses Pa
 core.txt includes ly because this repo installs a generated Ly config.
 core.txt includes brightnessctl and xorg-xauth because the Ly config references them directly.
 core.txt includes flatpak because the Rofi launcher explicitly exposes Flatpak desktop exports.
+core.txt includes btrfs-progs because the repo configures Btrfs automount/scrub behavior.
+core.txt includes pacman-contrib because the system tweaks enable paccache.timer.
 pactl is provided by libpulse.
 notify-send is provided by libnotify.
 xwininfo is provided by xorg-xwininfo.
