@@ -29,6 +29,7 @@ custom-themes/builders/theme-build
 | I3 | `custom-configs/I3/config` | `~/.config/i3/config` | `~/.config/custom-themes/i3-theme.i3` | `include ~/.config/custom-themes/i3-theme.i3` | Also installs `custom-configs/I3/scripts/*` to `~/.config/i3/scripts/*`; installer reloads i3 when available and not skipped. |
 | Rofi | `custom-configs/Rofi/config.rasi` | `~/.config/rofi/config.rasi` | `~/.config/custom-themes/rofi-theme.rasi` | `@import "~/.config/custom-themes/rofi-theme.rasi"` | Uses an app-specific Rasi theme builder with darker Orchis row and selection colors. |
 | Polybar | `custom-configs/Polybar/config.ini` | `~/.config/polybar/config.ini` | `~/.config/custom-themes/polybar-theme.ini` | `include-file = ~/.config/custom-themes/polybar-theme.ini` | `launch.sh` and `scripts/*` are installed executable; focused workspace keeps the existing green color. |
+| Dunst | `custom-configs/Dunst/dunstrc` | `~/.config/dunst/dunstrc` | `~/.config/custom-themes/dunst-theme.dunstrc` | `~/.config/dunst/dunstrc.d/90-vault-theme.conf` symlink | Compact top-right notifications; low/normal time out after 2 seconds, critical stays until dismissed; installer reloads Dunst with `dunstctl reload` when available. |
 | Alacritty | `custom-configs/Alacritty/alacritty.toml` | `~/.config/alacritty/alacritty.toml` | `~/.config/custom-themes/alacritty-theme.toml` | `import = ["~/.config/custom-themes/alacritty-theme.toml"]` | TOML theme import generated from the central palette. |
 | Micro | `custom-configs/Micro/settings.json` | `~/.config/micro/settings.json` | `~/.config/custom-themes/orchis-dark.micro` | `"colorscheme": "orchis-dark"` | Micro loads named colorschemes from `~/.config/micro/colorschemes`; installer copies the generated theme to `~/.config/micro/colorschemes/orchis-dark.micro`. |
 | Picom | `custom-configs/Picom/picom.conf` | `~/.config/picom/picom.conf` | none | none | No clean include/import mechanism is currently documented here; restart Picom manually or restart i3 if needed. |
@@ -69,6 +70,7 @@ audio-player.sh: playerctl-based audio player controls
 audio-output.sh: pactl + rofi audio output switcher
 calendar-menu.sh: gsimplecal popup opened by clicking the date
 screen-record.sh: ffmpeg + x11grab focused-window screen recorder; saves to ~/Videos/Recordings; attempts system audio via the default sink monitor and falls back to video-only
+notification-history.sh: Dunst history icon; left-click opens Rofi history and copies selected notification text, right-click clears Dunst history
 power-menu.sh: Rofi power menu
 polybar-runtime.sh: shared runtime formatting/color helper for Polybar scripts
 shortcuts.sh: app/folder shortcut icons
@@ -83,6 +85,34 @@ Audio: playerctl, pactl
 Weather: curl, jq
 Calendar: gsimplecal
 Recording: ffmpeg, xdotool, xwininfo; notify-send optional
+Notifications: dunst, dunstctl, jq, xclip or xsel
+```
+
+## Dunst Runtime And Theme
+
+Config:
+
+```text
+Repo: custom-configs/Dunst/dunstrc
+Target: ~/.config/dunst/dunstrc
+```
+
+Generated theme:
+
+```text
+Repo builder: custom-themes/builders/theme-build-dunst
+Generated target: ~/.config/custom-themes/dunst-theme.dunstrc
+Dunst drop-in target: ~/.config/dunst/dunstrc.d/90-vault-theme.conf
+```
+
+Behavior:
+
+```text
+Position: top-right
+Timeouts: low/normal 2 seconds, critical persistent
+Icons: enabled, medium size
+Clicks: left closes current popup, right opens Dunst context menu
+History: Polybar notification icon opens Rofi history and copies selected text
 ```
 
 Recommended CachyOS/Arch packages for the recording feature:
@@ -98,6 +128,7 @@ sudo pacman -S ffmpeg xdotool xorg-xwininfo libnotify
 | `custom-themes/builders/theme-build-i3` | `~/.config/custom-themes/i3-theme.i3` |
 | `custom-themes/builders/theme-build-rofi` | `~/.config/custom-themes/rofi-theme.rasi` |
 | `custom-themes/builders/theme-build-polybar` | `~/.config/custom-themes/polybar-theme.ini` |
+| `custom-themes/builders/theme-build-dunst` | `~/.config/custom-themes/dunst-theme.dunstrc` |
 | `custom-themes/builders/theme-build-alacritty` | `~/.config/custom-themes/alacritty-theme.toml` |
 | `custom-themes/builders/theme-build-micro` | `~/.config/custom-themes/orchis-dark.micro` |
 

@@ -1,0 +1,70 @@
+[global]
+    # Theme colors are installed as:
+    #   ~/.config/dunst/dunstrc.d/90-vault-theme.conf
+    # which points to:
+    #   ~/.config/custom-themes/dunst-theme.dunstrc
+
+    font = JetBrainsMono Nerd Font 10
+    markup = full
+    format = "<b>%s</b>\n%b"
+    alignment = left
+    vertical_alignment = center
+
+    origin = top-right
+    offset = (14, 40)
+    width = (280, 360)
+    height = (0, 140)
+    notification_limit = 5
+    follow = keyboard
+
+    transparency = 0
+    corner_radius = 0
+    frame_width = 1
+    separator_height = 1
+    separator_color = frame
+    gap_size = 4
+
+    padding = 8
+    horizontal_padding = 10
+    text_icon_padding = 8
+    line_height = 0
+
+    sort = update
+    indicate_hidden = true
+    idle_threshold = 0
+    show_age_threshold = -1
+    ignore_newline = false
+    word_wrap = true
+    ellipsize = middle
+    stack_duplicates = true
+    hide_duplicate_count = false
+    show_indicators = true
+
+    icon_position = left
+    min_icon_size = 32
+    max_icon_size = 48
+    enable_recursive_icon_lookup = true
+    icon_theme = Papirus-Dark, Papirus, Adwaita
+
+    sticky_history = true
+    history_length = 50
+    dmenu = rofi -dmenu -i -p "Notification Action" -font "JetBrainsMono Nerd Font 12"
+    browser = xdg-open
+
+    mouse_left_click = close_current
+    mouse_middle_click = do_action, close_current
+    mouse_right_click = context
+
+    close = mod4+m
+    close_all = mod4+shift+m
+    history = mod4+n
+    context = mod4+shift+i
+
+[urgency_low]
+    timeout = 2
+
+[urgency_normal]
+    timeout = 2
+
+[urgency_critical]
+    timeout = 0

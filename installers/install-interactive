@@ -16,6 +16,7 @@ declare -A CONFIG_GROUPS=(
     [8]=cursor-hardening
     [9]=wallpaper
     [10]=i3-scripts
+    [11]=dunst
 )
 
 cat <<'MENU'
@@ -30,6 +31,7 @@ Available configs:
   8) cursor-hardening
   9) wallpaper
   10) i3-scripts
+  11) dunst
   all) all configs
   q) quit
 
@@ -60,7 +62,7 @@ for selection in "${selections[@]}"; do
             run_nwg_look
             exit 0
             ;;
-        [1-9]|10)
+        [1-9]|10|11)
             install_app_config "${CONFIG_GROUPS[$selection]}"
             ;;
         *)

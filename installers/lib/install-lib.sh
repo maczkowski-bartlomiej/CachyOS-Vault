@@ -51,6 +51,13 @@ install_rofi() {
     copy_file "$REPO_ROOT/custom-configs/Rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
 }
 
+install_dunst() {
+    copy_file "$REPO_ROOT/custom-configs/Dunst/dunstrc" "$HOME/.config/dunst/dunstrc"
+    ensure_dir "$HOME/.config/dunst/dunstrc.d"
+    ln -sfn "$HOME/.config/custom-themes/dunst-theme.dunstrc" "$HOME/.config/dunst/dunstrc.d/90-vault-theme.conf"
+    log_ok "Linked Dunst theme drop-in $HOME/.config/dunst/dunstrc.d/90-vault-theme.conf"
+}
+
 install_polybar() {
     local script src
     copy_file "$REPO_ROOT/custom-configs/Polybar/config.ini" "$HOME/.config/polybar/config.ini"
@@ -154,6 +161,20 @@ reload_polybar() {
     fi
 }
 
+reload_dunst() {
+    if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
+        log_info "Skipped Dunst reload because VAULT_SKIP_RELOAD is set"
+    elif command_exists dunstctl; then
+        if dunstctl reload >/dev/null 2>&1; then
+            log_ok "Reloaded Dunst"
+        else
+            log_warn "Dunst reload failed; restart Dunst manually if needed"
+        fi
+    else
+        log_warn "Dunst reload skipped; dunstctl unavailable"
+    fi
+}
+
 reload_picom_if_safe() {
     log_info "Picom config installed. Restart Picom manually or restart i3 if needed."
 }
@@ -164,6 +185,10 @@ install_app_config() {
         i3) install_i3 ;;
         i3-scripts) install_i3_scripts ;;
         rofi) install_rofi ;;
+        dunst)
+            install_dunst
+            reload_dunst
+            ;;
         polybar) install_polybar ;;
         alacritty) install_alacritty ;;
         micro) install_micro ;;
@@ -185,6 +210,7 @@ install_selected_configs() {
 install_all_configs() {
     install_i3
     install_rofi
+    install_dunst
     install_polybar
     install_alacritty
     install_micro
@@ -197,5 +223,6 @@ install_all_configs() {
     else
         reload_polybar
     fi
+    reload_dunst
     reload_picom_if_safe
 }

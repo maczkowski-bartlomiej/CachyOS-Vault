@@ -22,6 +22,7 @@ Generated files:
 ~/.config/custom-themes/i3-theme.i3
 ~/.config/custom-themes/rofi-theme.rasi
 ~/.config/custom-themes/polybar-theme.ini
+~/.config/custom-themes/dunst-theme.dunstrc
 ~/.config/custom-themes/alacritty-theme.toml
 ~/.config/custom-themes/orchis-dark.micro
 ```

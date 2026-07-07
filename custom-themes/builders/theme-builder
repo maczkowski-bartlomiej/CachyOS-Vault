@@ -11,6 +11,7 @@ builders=(
     theme-build-i3
     theme-build-rofi
     theme-build-polybar
+    theme-build-dunst
     theme-build-alacritty
     theme-build-micro
 )
