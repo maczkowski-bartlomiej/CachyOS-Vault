@@ -1,2 +1,2 @@
-Super Productivity
-MarkText
+com.super_productivity.SuperProductivity
+com.github.marktext.marktext
