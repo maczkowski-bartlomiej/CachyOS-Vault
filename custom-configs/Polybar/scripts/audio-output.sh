@@ -42,21 +42,6 @@ print_icon() {
   icon="󰓃"
   color="$C_PRIMARY"
 
-  case "${desc,,} ${sink,,}" in
-    *headphone*|*headset*)
-      icon="󰋋"
-      ;;
-    *bluetooth*|*bluez*)
-      icon="󰂯"
-      ;;
-    *hdmi*)
-      icon="󰽟"
-      ;;
-    *speaker*|*analog*)
-      icon=""
-      ;;
-  esac
-
   echo "${T_ICON_MD}$(F "$color" "$icon")${T_RESET}"
 }
 
