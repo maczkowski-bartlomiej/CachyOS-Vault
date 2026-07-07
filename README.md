@@ -29,6 +29,24 @@ Generated files:
 
 ## Installers
 
+Install core system packages used by this repo:
+
+```bash
+sudo pacman -S --needed - < packages/core.txt
+```
+
+Install personal apps:
+
+```bash
+sudo pacman -S --needed - < packages/apps.txt
+```
+
+Install AUR-only dependencies:
+
+```bash
+xargs -r -a packages/aur.txt paru -S --needed
+```
+
 Install all configs and launch `nwg-look` when available:
 
 ```bash

@@ -16,6 +16,28 @@ Generated theme files are written under:
 ~/.config/custom-themes/
 ```
 
+## Package Manifest
+
+Install core system packages used by these configs with:
+
+```bash
+sudo pacman -S --needed - < packages/core.txt
+```
+
+Install personal apps with:
+
+```bash
+sudo pacman -S --needed - < packages/apps.txt
+```
+
+Install AUR-only dependencies with an AUR helper:
+
+```bash
+xargs -r -a packages/aur.txt paru -S --needed
+```
+
+The package lists are kept comment-free for direct package-manager use. Details and caveats live in `packages/README.md`.
+
 The compatibility wrapper remains available:
 
 ```bash

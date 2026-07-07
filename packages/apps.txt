@@ -1,0 +1,3 @@
+bitwarden
+thunar
+zen-browser-bin
