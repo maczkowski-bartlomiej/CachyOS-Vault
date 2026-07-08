@@ -1,7 +1,7 @@
 brightnessctl
+btrfs-progs
 git-zsh-completion
 inter-font
-kolourpaint
 kvantum
 kvantum-qt5
 maim
@@ -19,7 +19,6 @@ redshift
 slop
 ttf-jetbrains-mono
 ttf-jetbrains-mono-nerd
-viewnior
 xdg-utils
 xdotool
 xorg-xsetroot

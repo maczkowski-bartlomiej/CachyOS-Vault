@@ -2,54 +2,86 @@
 
 ## Entrypoints
 
-Install packages from `packages/core.txt`, `packages/apps.txt`, `packages/aur.txt`, and `packages/flatpak.txt`:
+Install packages with an interactive manifest picker:
 
 ```bash
 installers/install-packages
 ```
 
-Install only selected package groups:
+Install configs, build themes, and reload/restart i3 once:
 
 ```bash
-installers/install-packages --core --apps --aur --flatpak
+installers/install-configs
 ```
 
-Force a package installer mode:
+Run optional tweaks with an interactive picker:
 
 ```bash
-installers/install-packages --manager shelly
-installers/install-packages --manager legacy
+installers/install-tweaks
 ```
 
-Install all configs without launching `nwg-look`:
+Configure desktop themes with GUI tools:
 
 ```bash
-installers/install-all
+installers/configure-themes
 ```
 
-Install all configs and launch `nwg-look` when available:
+Print an optional prerequisite report:
 
 ```bash
-installers/install-all-with-nwg-look
+installers/check-prereqs
 ```
 
-The old interactive config installer has been removed. Config group names still live in `scripts/lib/vault-registry.sh` so installer dispatch and validation share one registry.
+## Packages
 
-## Behavior
+`installers/install-packages` reads sorted manifests from `custom-packages/*.txt`.
 
-`installers/install-packages` installs core/app manifests first, then AUR packages, then Flatpak apps. It uses Shelly by default when `shelly` is installed, so Shelly can show its package and optional dependency prompts. Without Shelly, it falls back to `pacman`, `paru` or `yay`, and `flatpak`.
+Picker input:
 
-Flatpak installs default to user scope. The installer adds the user `flathub` remote first when it is missing, then installs Flatpak apps from that remote.
+```text
+blank  cancel
+all    install every manifest
+1 3 5  install selected manifest numbers
+```
 
-The installers share implementation through `installers/lib/install-lib.sh`. They use `install -D`, respect `$HOME`, and log copied files. The file-associations installer also removes old repo-managed MIME helper artifacts before applying current defaults.
+Package manager mode is controlled by `VAULT_PACKAGE_MANAGER=auto|shelly|legacy`. In `auto`, Shelly is used when available; otherwise the installer falls back to `pacman`, an AUR helper, and `flatpak`.
 
-`installers/install-all` still installs the managed `nwg-look` config file; it only avoids launching the GUI. Use `installers/install-all-with-nwg-look` for the GUI pass.
+## Configs
+
+`installers/install-configs` runs the theme builders, installs all app configs, installs generated theme configs where an app needs a concrete file, then runs:
+
+```bash
+i3-msg reload
+i3-msg restart
+```
+
+It does not directly reload Polybar. The i3 restart handles Polybar through the i3 startup config.
+
+System-level config writes such as Ly may use `sudo`. Set `VAULT_SKIP_SYSTEM_CONFIGS=1` for user-only dry runs.
+
+## Tweaks
+
+`installers/install-tweaks` runs selected stateful tweaks fail-fast:
+
+```text
+file-associations
+drive-automounts
+gtk-bookmarks
+cursor-hardening
+system-units
+betterlockscreen-cache
+```
+
+Drive automounts and system units may use `sudo`. `betterlockscreen-cache` runs `betterlockscreen -u ~/.config/i3/wallpaper.jpg`.
+
+## Theme GUIs
+
+`installers/configure-themes` prints the exact GTK, icon, cursor, font, Qt, and Kvantum settings. It launches `nwg-look`, `qt5ct`, `qt6ct`, and `kvantummanager` in the background with output redirected to temp log files, waiting for Enter after each tool.
 
 ## Useful Toggles
 
 ```bash
 VAULT_PACKAGE_MANAGER=auto
-VAULT_SKIP_NWG_LOOK=1
 VAULT_SKIP_RELOAD=1
 VAULT_SKIP_SYSTEM_CONFIGS=1
 VAULT_SKIP_MIME_DEFAULTS=1
@@ -59,12 +91,4 @@ VAULT_SKIP_FLATPAK=1
 VAULT_FLATPAK_REMOTE=flathub
 VAULT_FLATPAK_REMOTE_URL=https://dl.flathub.org/repo/flathub.flatpakrepo
 VAULT_FLATPAK_SCOPE=user
-```
-
-System-level installer groups such as Ly, drive automounts, and system tweaks may use sudo. Set `VAULT_SKIP_SYSTEM_CONFIGS=1` for a user-only install or dry run.
-
-Headless dry run:
-
-```bash
-HOME="$(mktemp -d)" VAULT_SKIP_RELOAD=1 VAULT_SKIP_SYSTEM_CONFIGS=1 installers/install-all
 ```

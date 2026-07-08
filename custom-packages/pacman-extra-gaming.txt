@@ -1,0 +1,6 @@
+gamemode
+gamescope
+lutris
+steam
+wine
+wine-mono

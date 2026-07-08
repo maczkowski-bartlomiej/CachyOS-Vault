@@ -3,30 +3,27 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+PACKAGE_SOURCE_DIR="$REPO_ROOT/custom-packages"
 
 # shellcheck source=../scripts/lib/vault-lib.sh
 source "$REPO_ROOT/scripts/lib/vault-lib.sh"
 
 MANIFEST_PACKAGES=()
+PACKAGE_MANIFESTS=()
+SELECTED_MANIFESTS=()
 FLATPAK_SCOPE_ARGS=()
 SHELLY_FLATPAK_SCOPE_ARGS=()
 
 usage() {
     cat <<'USAGE'
-Usage: installers/install-packages [--all] [--pacman] [--core] [--apps] [--aur] [--flatpak] [--manager auto|shelly|legacy]
+Usage: installers/install-packages
 
-With no flags, installs every package manifest in this order:
-  core, apps, AUR, Flatpak
+Shows a numbered picker for package manifests under custom-packages/.
 
-Options:
-  --all       install every package manifest
-  --pacman    install core and apps manifests
-  --core      install packages/core.txt
-  --apps      install packages/apps.txt
-  --aur       install packages/aur.txt
-  --flatpak   install packages/flatpak.txt
-  --manager   package manager mode; defaults to auto
-  -h, --help  show this help
+Picker input:
+  blank       cancel
+  all         install every listed manifest
+  1 3 5       install selected manifest numbers
 
 Environment:
   VAULT_PACKAGE_MANAGER=auto|shelly|legacy
@@ -35,7 +32,7 @@ Environment:
   VAULT_SKIP_FLATPAK=1
   VAULT_FLATPAK_REMOTE=flathub
   VAULT_FLATPAK_REMOTE_URL=https://dl.flathub.org/repo/flathub.flatpakrepo
-  VAULT_FLATPAK_SCOPE=user|system|none
+  VAULT_FLATPAK_SCOPE=user|system|none|auto
 USAGE
 }
 
@@ -76,17 +73,103 @@ resolve_package_manager() {
                 printf '%s\n' legacy
             fi
             ;;
-        shelly|shelly-ui)
-            command_exists shelly || die "shelly is required for --manager $requested"
+        shelly)
+            command_exists shelly || die "shelly is required for VAULT_PACKAGE_MANAGER=shelly"
             printf '%s\n' shelly
             ;;
         legacy)
             printf '%s\n' legacy
             ;;
         *)
-            die "Package manager must be auto, shelly, or legacy"
+            die "VAULT_PACKAGE_MANAGER must be auto, shelly, or legacy"
             ;;
     esac
+}
+
+manifest_label() {
+    local manifest="${1:?manifest required}"
+    basename -- "$manifest" .txt
+}
+
+load_package_manifests() {
+    local manifest
+
+    PACKAGE_MANIFESTS=()
+    if [[ -f "$PACKAGE_SOURCE_DIR/pacman-core.txt" ]]; then
+        PACKAGE_MANIFESTS+=("$PACKAGE_SOURCE_DIR/pacman-core.txt")
+    fi
+
+    if [[ -f "$PACKAGE_SOURCE_DIR/pacman-core-apps.txt" ]]; then
+        PACKAGE_MANIFESTS+=("$PACKAGE_SOURCE_DIR/pacman-core-apps.txt")
+    fi
+
+    while IFS= read -r manifest; do
+        PACKAGE_MANIFESTS+=("$manifest")
+    done < <(
+        find "$PACKAGE_SOURCE_DIR" -maxdepth 1 -type f -name 'pacman-*.txt' \
+            ! -name 'pacman-core.txt' ! -name 'pacman-core-apps.txt' -print | LC_ALL=C sort
+    )
+
+    if [[ -f "$PACKAGE_SOURCE_DIR/aur.txt" ]]; then
+        PACKAGE_MANIFESTS+=("$PACKAGE_SOURCE_DIR/aur.txt")
+    fi
+
+    if [[ -f "$PACKAGE_SOURCE_DIR/flatpak.txt" ]]; then
+        PACKAGE_MANIFESTS+=("$PACKAGE_SOURCE_DIR/flatpak.txt")
+    fi
+
+    while IFS= read -r manifest; do
+        PACKAGE_MANIFESTS+=("$manifest")
+    done < <(
+        find "$PACKAGE_SOURCE_DIR" -maxdepth 1 -type f -name '*.txt' \
+            ! -name 'pacman-*.txt' ! -name 'aur.txt' ! -name 'flatpak.txt' -print | LC_ALL=C sort
+    )
+
+    ((${#PACKAGE_MANIFESTS[@]} > 0)) || die "No package manifests found in custom-packages"
+}
+
+print_package_menu() {
+    local index manifest
+
+    log_info "Package manifests"
+    for index in "${!PACKAGE_MANIFESTS[@]}"; do
+        manifest="${PACKAGE_MANIFESTS[$index]}"
+        printf '%2d) %s\n' "$((index + 1))" "$(manifest_label "$manifest")"
+    done
+    printf 'Selection [blank cancels, all installs every manifest]: '
+}
+
+select_package_manifests() {
+    local input token normalized index manifest
+    declare -A seen=()
+
+    print_package_menu
+    IFS= read -r input || input=""
+    normalized="${input//,/ }"
+
+    if [[ -z "$normalized" ]]; then
+        log_info "Package installation canceled"
+        exit 0
+    fi
+
+    if [[ "$normalized" == "all" ]]; then
+        SELECTED_MANIFESTS=("${PACKAGE_MANIFESTS[@]}")
+        return 0
+    fi
+
+    SELECTED_MANIFESTS=()
+    for token in $normalized; do
+        [[ "$token" =~ ^[0-9]+$ ]] || die "Invalid selection: $token"
+        index=$((token - 1))
+        ((index >= 0 && index < ${#PACKAGE_MANIFESTS[@]})) || die "Selection out of range: $token"
+        manifest="${PACKAGE_MANIFESTS[$index]}"
+        if [[ -z "${seen[$manifest]:-}" ]]; then
+            SELECTED_MANIFESTS+=("$manifest")
+            seen[$manifest]=1
+        fi
+    done
+
+    ((${#SELECTED_MANIFESTS[@]} > 0)) || die "No package manifests selected"
 }
 
 install_shelly_manifest() {
@@ -142,7 +225,7 @@ detect_aur_helper() {
 }
 
 install_aur_manifest() {
-    local manifest="$REPO_ROOT/packages/aur.txt"
+    local manifest="${1:?manifest required}"
     local helper
 
     if [[ -n "${VAULT_SKIP_AUR:-}" ]]; then
@@ -162,7 +245,7 @@ install_aur_manifest() {
 }
 
 install_shelly_aur_manifest() {
-    local manifest="$REPO_ROOT/packages/aur.txt"
+    local manifest="${1:?manifest required}"
 
     if [[ -n "${VAULT_SKIP_AUR:-}" ]]; then
         log_info "Skipped AUR packages because VAULT_SKIP_AUR is set"
@@ -180,10 +263,12 @@ install_shelly_aur_manifest() {
 }
 
 install_aur_packages() {
+    local manifest="${1:?manifest required}"
+
     if [[ "$PACKAGE_MANAGER" == "shelly" ]]; then
-        install_shelly_aur_manifest
+        install_shelly_aur_manifest "$manifest"
     else
-        install_aur_manifest
+        install_aur_manifest "$manifest"
     fi
 }
 
@@ -246,7 +331,7 @@ resolve_flatpak_scope_args() {
 }
 
 install_flatpak_manifest() {
-    local manifest="$REPO_ROOT/packages/flatpak.txt"
+    local manifest="${1:?manifest required}"
     local remote="${VAULT_FLATPAK_REMOTE:-flathub}"
 
     if [[ -n "${VAULT_SKIP_FLATPAK:-}" ]]; then
@@ -269,7 +354,7 @@ install_flatpak_manifest() {
 }
 
 install_shelly_flatpak_manifest() {
-    local manifest="$REPO_ROOT/packages/flatpak.txt"
+    local manifest="${1:?manifest required}"
     local remote="${VAULT_FLATPAK_REMOTE:-flathub}"
     local package
 
@@ -295,70 +380,45 @@ install_shelly_flatpak_manifest() {
 }
 
 install_flatpak_packages() {
+    local manifest="${1:?manifest required}"
+
     if [[ "$PACKAGE_MANAGER" == "shelly" ]]; then
-        install_shelly_flatpak_manifest
+        install_shelly_flatpak_manifest "$manifest"
     else
-        install_flatpak_manifest
+        install_flatpak_manifest "$manifest"
     fi
 }
 
-install_core=0
-install_apps=0
-install_aur=0
-install_flatpak=0
-requested_manager="${VAULT_PACKAGE_MANAGER:-auto}"
+install_manifest() {
+    local manifest="${1:?manifest required}"
+    local label
 
-if (($# == 0)); then
-    set -- --all
-fi
+    label="$(manifest_label "$manifest")"
+    case "$label" in
+        aur) install_aur_packages "$manifest" ;;
+        flatpak) install_flatpak_packages "$manifest" ;;
+        *) install_arch_manifest "$label" "$manifest" ;;
+    esac
+}
 
-while (($# > 0)); do
-    case "$1" in
-        --all)
-            install_core=1
-            install_apps=1
-            install_aur=1
-            install_flatpak=1
-            ;;
-        --pacman)
-            install_core=1
-            install_apps=1
-            ;;
-        --core) install_core=1 ;;
-        --apps) install_apps=1 ;;
-        --aur) install_aur=1 ;;
-        --flatpak) install_flatpak=1 ;;
-        --manager)
-            shift
-            (($# > 0)) || die "--manager requires auto, shelly, or legacy"
-            requested_manager="$1"
-            ;;
-        --manager=*)
-            requested_manager="${1#--manager=}"
-            ;;
+if (($# > 0)); then
+    case "${1:-}" in
         -h|--help)
             usage
             exit 0
             ;;
-        *) die "Unknown option: $1" ;;
+        *)
+            usage >&2
+            die "install-packages uses the interactive picker; set VAULT_PACKAGE_MANAGER in the environment for manager mode"
+            ;;
     esac
-    shift
+fi
+
+load_package_manifests
+select_package_manifests
+
+PACKAGE_MANAGER="$(resolve_package_manager "${VAULT_PACKAGE_MANAGER:-auto}")"
+
+for manifest in "${SELECTED_MANIFESTS[@]}"; do
+    install_manifest "$manifest"
 done
-
-PACKAGE_MANAGER="$(resolve_package_manager "$requested_manager")"
-
-if ((install_core)); then
-    install_arch_manifest core "$REPO_ROOT/packages/core.txt"
-fi
-
-if ((install_apps)); then
-    install_arch_manifest apps "$REPO_ROOT/packages/apps.txt"
-fi
-
-if ((install_aur)); then
-    install_aur_packages
-fi
-
-if ((install_flatpak)); then
-    install_flatpak_packages
-fi

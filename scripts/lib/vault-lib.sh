@@ -1,10 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-log_info() { printf '[INFO] %s\n' "$*"; }
-log_ok() { printf '[OK] %s\n' "$*"; }
-log_warn() { printf '[WARN] %s\n' "$*" >&2; }
-log_error() { printf '[ERROR] %s\n' "$*" >&2; }
+vault_color() {
+    local code="${1:?color code required}"
+    local stream_fd="${2:-1}"
+
+    [[ -z "${NO_COLOR:-}" ]] || return 1
+    [[ -t "$stream_fd" ]] || return 1
+    printf '\033[%sm' "$code"
+}
+
+vault_log() {
+    local level="${1:?level required}"
+    local color="${2:?color required}"
+    local stream="${3:?stream required}"
+    shift 3
+
+    if [[ "$stream" == stderr ]]; then
+        if vault_color "$color" 2 >/dev/null; then
+            printf '%b[%s]%b %s\n' "$(vault_color "$color" 2)" "$level" "$(vault_color 0 2)" "$*" >&2
+        else
+            printf '[%s] %s\n' "$level" "$*" >&2
+        fi
+    elif vault_color "$color" 1 >/dev/null; then
+        printf '%b[%s]%b %s\n' "$(vault_color "$color" 1)" "$level" "$(vault_color 0 1)" "$*"
+    else
+        printf '[%s] %s\n' "$level" "$*"
+    fi
+}
+
+log_info() { vault_log INFO 36 stdout "$*"; }
+log_ok() { vault_log OK 32 stdout "$*"; }
+log_warn() { vault_log WARN 33 stderr "$*"; }
+log_error() { vault_log ERROR 31 stderr "$*"; }
 die() { log_error "$*"; exit 1; }
 
 repo_root_from_script() {
@@ -13,7 +41,7 @@ repo_root_from_script() {
     dir="$(cd -- "$script_dir" && pwd)"
 
     while [[ "$dir" != "/" ]]; do
-        if [[ -d "$dir/custom-themes" && -d "$dir/custom-configs" ]]; then
+        if [[ -d "$dir/custom-configs/Themes" && -d "$dir/custom-packages" ]]; then
             printf '%s\n' "$dir"
             return 0
         fi

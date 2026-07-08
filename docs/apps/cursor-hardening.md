@@ -3,8 +3,8 @@
 ## Files
 
 ```text
-Repo cursor theme: custom-configs/I3/cursor-hardening/index.theme
-Repo Xresources: custom-configs/I3/cursor-hardening/.Xresources
+Repo cursor theme: custom-tweaks/cursor-hardening/index.theme
+Repo Xresources: custom-tweaks/cursor-hardening/.Xresources
 Install cursor target: ~/.icons/default/index.theme
 Install Xresources target: ~/.Xresources
 ```

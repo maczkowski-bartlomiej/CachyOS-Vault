@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=lib/install-lib.sh
+source "$SCRIPT_DIR/lib/install-lib.sh"
+
+SELECTED_TWEAKS=()
+
+usage() {
+    cat <<'USAGE'
+Usage: installers/install-tweaks
+
+Shows a numbered picker for optional system/user tweaks.
+
+Picker input:
+  blank       cancel
+  all         run every listed tweak
+  1 3 5       run selected tweak numbers
+USAGE
+}
+
+tweak_label() {
+    local name="${1:?tweak name required}"
+
+    case "$name" in
+        file-associations) printf 'File associations\n' ;;
+        drive-automounts) printf 'Drive automounts\n' ;;
+        gtk-bookmarks) printf 'GTK drive bookmarks\n' ;;
+        cursor-hardening) printf 'Cursor hardening\n' ;;
+        system-units) printf 'System unit timers\n' ;;
+        betterlockscreen-cache) printf 'Betterlockscreen cache\n' ;;
+        *) printf '%s\n' "$name" ;;
+    esac
+}
+
+print_tweak_menu() {
+    local index tweak
+
+    log_info "Tweaks"
+    for index in "${!VAULT_TWEAKS[@]}"; do
+        tweak="${VAULT_TWEAKS[$index]}"
+        printf '%2d) %s [%s]\n' "$((index + 1))" "$(tweak_label "$tweak")" "$tweak"
+    done
+    printf 'Selection [blank cancels, all runs every tweak]: '
+}
+
+select_tweaks() {
+    local input token normalized index tweak
+    declare -A seen=()
+
+    print_tweak_menu
+    IFS= read -r input || input=""
+    normalized="${input//,/ }"
+
+    if [[ -z "$normalized" ]]; then
+        log_info "Tweak installation canceled"
+        exit 0
+    fi
+
+    if [[ "$normalized" == "all" ]]; then
+        SELECTED_TWEAKS=("${VAULT_TWEAKS[@]}")
+        return 0
+    fi
+
+    for token in $normalized; do
+        [[ "$token" =~ ^[0-9]+$ ]] || die "Invalid selection: $token"
+        index=$((token - 1))
+        ((index >= 0 && index < ${#VAULT_TWEAKS[@]})) || die "Selection out of range: $token"
+        tweak="${VAULT_TWEAKS[$index]}"
+        if [[ -z "${seen[$tweak]:-}" ]]; then
+            SELECTED_TWEAKS+=("$tweak")
+            seen[$tweak]=1
+        fi
+    done
+
+    ((${#SELECTED_TWEAKS[@]} > 0)) || die "No tweaks selected"
+}
+
+if (($# > 0)); then
+    case "${1:-}" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            die "install-tweaks uses the interactive picker"
+            ;;
+    esac
+fi
+
+select_tweaks
+run_selected_tweaks "${SELECTED_TWEAKS[@]}"

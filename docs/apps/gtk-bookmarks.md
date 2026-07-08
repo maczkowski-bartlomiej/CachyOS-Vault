@@ -3,7 +3,7 @@
 ## Files
 
 ```text
-Repo source: custom-configs/GTK/bookmarks
+Repo source: custom-tweaks/gtk-bookmarks/bookmarks
 Install targets:
   ~/.config/gtk-3.0/bookmarks
   ~/.config/gtk-4.0/bookmarks

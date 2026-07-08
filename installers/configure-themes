@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=../scripts/lib/vault-lib.sh
+source "$REPO_ROOT/scripts/lib/vault-lib.sh"
+
+LOG_DIR="${VAULT_THEME_TOOL_LOG_DIR:-$(mktemp -d -t cachyos-vault-theme-tools.XXXXXX)}"
+
+print_settings() {
+    cat <<'SETTINGS'
+Use these theme settings:
+GTK theme: Orchis-Dark
+Icon theme: Papirus-Dark
+Cursor theme: Bibata-Modern-Ice
+Font: Inter 11
+Monospace font: JetBrainsMono Nerd Font 10
+Qt style: Kvantum
+Kvantum theme: Orchis-solidDark
+SETTINGS
+    log_info "Theme tool logs: $LOG_DIR"
+}
+
+run_theme_tool() {
+    local command="${1:?command required}"
+    local log_file="$LOG_DIR/$command.log"
+    local pid
+
+    ensure_dir "$LOG_DIR"
+    log_info "Launching $command"
+    "$command" > "$log_file" 2>&1 &
+    pid=$!
+    printf 'Press Enter after finishing %s...' "$command"
+    IFS= read -r _ || true
+
+    if ! kill -0 "$pid" 2>/dev/null; then
+        wait "$pid" || log_warn "$command exited before Enter; see $log_file"
+    fi
+}
+
+print_settings
+run_theme_tool nwg-look
+run_theme_tool qt5ct
+run_theme_tool qt6ct
+run_theme_tool kvantummanager

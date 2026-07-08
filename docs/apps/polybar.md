@@ -6,7 +6,7 @@
 Repo config: custom-configs/Polybar/config.ini
 Install target: ~/.config/polybar/config.ini
 Generated theme: ~/.config/custom-themes/polybar-theme.ini
-Builder: custom-themes/builders/theme-build-polybar
+Builder: custom-configs/Themes/builders/theme-build-polybar
 ```
 
 The config imports the generated theme with:

@@ -7,7 +7,7 @@ Repo config: custom-configs/Micro/settings.json
 Install target: ~/.config/micro/settings.json
 Generated theme: ~/.config/custom-themes/orchis-dark.micro
 Installed theme: ~/.config/micro/colorschemes/orchis-dark.micro
-Builder: custom-themes/builders/theme-build-micro
+Builder: custom-configs/Themes/builders/theme-build-micro
 ```
 
 ## Runtime Notes

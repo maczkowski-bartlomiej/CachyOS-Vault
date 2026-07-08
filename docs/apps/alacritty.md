@@ -6,7 +6,7 @@
 Repo config: custom-configs/Alacritty/alacritty.toml
 Install target: ~/.config/alacritty/alacritty.toml
 Generated theme: ~/.config/custom-themes/alacritty-theme.toml
-Builder: custom-themes/builders/theme-build-alacritty
+Builder: custom-configs/Themes/builders/theme-build-alacritty
 ```
 
 ## Runtime Notes

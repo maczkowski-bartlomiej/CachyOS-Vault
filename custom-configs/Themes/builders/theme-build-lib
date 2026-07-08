@@ -2,12 +2,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd)}"
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../../.." && pwd)}"
 
-# shellcheck source=../../scripts/lib/vault-lib.sh
+# shellcheck source=../../../scripts/lib/vault-lib.sh
 source "$REPO_ROOT/scripts/lib/vault-lib.sh"
 
-PALETTE_FILE="${PALETTE_FILE:-$REPO_ROOT/custom-themes/color-palette/orchis-dark-palette.sh}"
+PALETTE_FILE="${PALETTE_FILE:-$REPO_ROOT/custom-configs/Themes/color-palette/orchis-dark-palette.sh}"
 THEME_OUTPUT_DIR="${THEME_OUTPUT_DIR:-$HOME/.config/custom-themes}"
 
 load_palette() {

@@ -1,5 +1,5 @@
 # Orchis-Dark global palette
-# Source of truth. Edit this file, then run custom-themes/builders/theme-builder.
+# Source of truth. Edit this file, then run custom-configs/Themes/builders/theme-builder.
 
 # Core surfaces from Orchis-Dark
 BG="#212121"

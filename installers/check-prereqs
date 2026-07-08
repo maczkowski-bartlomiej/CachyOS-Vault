@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=../scripts/lib/vault-lib.sh
+source "$REPO_ROOT/scripts/lib/vault-lib.sh"
+
+required_commands=(
+    bash
+    install
+    i3-msg
+    nwg-look
+    qt5ct
+    qt6ct
+    kvantummanager
+    xdg-mime
+    gio
+    findmnt
+    systemctl
+    xrdb
+    betterlockscreen
+)
+
+optional_commands=(
+    shelly
+    pacman
+    paru
+    yay
+    flatpak
+    update-desktop-database
+    shellcheck
+    jq
+    zsh
+)
+
+report_command() {
+    local command="${1:?command required}"
+    local kind="${2:?kind required}"
+
+    if command_exists "$command"; then
+        log_ok "$kind command found: $command"
+    else
+        log_warn "$kind command missing: $command"
+    fi
+}
+
+for command in "${required_commands[@]}"; do
+    report_command "$command" Required
+done
+
+for command in "${optional_commands[@]}"; do
+    report_command "$command" Optional
+done

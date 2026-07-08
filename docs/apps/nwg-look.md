@@ -9,12 +9,10 @@ Install target: ~/.config/nwg-look/config
 
 ## Installer Behavior
 
-`installers/install-all` installs the config but does not launch `nwg-look`.
+`installers/install-configs` installs the config but does not launch `nwg-look`.
 
-Use this entrypoint when you want the GUI launched after install:
+Use the theme configuration flow when you want the GUI launched after install:
 
 ```bash
-installers/install-all-with-nwg-look
+installers/configure-themes
 ```
-
-Set `VAULT_SKIP_NWG_LOOK=1` to suppress launching even from the `with-nwg-look` entrypoint.

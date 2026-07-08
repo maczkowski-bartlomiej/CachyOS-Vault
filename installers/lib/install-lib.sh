@@ -9,20 +9,35 @@ source "$REPO_ROOT/scripts/lib/vault-lib.sh"
 # shellcheck source=../../scripts/lib/vault-registry.sh
 source "$REPO_ROOT/scripts/lib/vault-registry.sh"
 
+THEME_SOURCE_DIR="$REPO_ROOT/custom-configs/Themes"
+TWEAK_SOURCE_DIR="$REPO_ROOT/custom-tweaks"
+
+display_path() {
+    local path="${1:?path required}"
+
+    if [[ "$path" == "$HOME"* ]]; then
+        printf '~%s\n' "${path#"$HOME"}"
+    elif [[ "$path" == "$REPO_ROOT"* ]]; then
+        printf '%s\n' "${path#"$REPO_ROOT"/}"
+    else
+        printf '%s\n' "$path"
+    fi
+}
+
 copy_file() {
     local src="${1:?source required}"
     local dest="${2:?destination required}"
+
     require_file "$src"
     install -D -m 0644 "$src" "$dest"
-    log_ok "Installed $dest"
 }
 
 copy_executable() {
     local src="${1:?source required}"
     local dest="${2:?destination required}"
+
     require_file "$src"
     install -D -m 0755 "$src" "$dest"
-    log_ok "Installed executable $dest"
 }
 
 copy_system_file() {
@@ -44,8 +59,6 @@ copy_system_file() {
     else
         die "sudo is required to install $dest"
     fi
-
-    log_ok "Installed system config $dest"
 }
 
 run_system_command() {
@@ -63,9 +76,24 @@ run_system_command() {
     fi
 }
 
+copy_executables_from_dir() {
+    local src_dir="${1:?source directory required}"
+    local dest_dir="${2:?destination directory required}"
+    local count=0 src
+
+    ensure_dir "$dest_dir"
+    for src in "$src_dir"/*; do
+        [[ -f "$src" ]] || continue
+        copy_executable "$src" "$dest_dir/$(basename -- "$src")"
+        count=$((count + 1))
+    done
+
+    printf '%s\n' "$count"
+}
+
 run_theme_builders() {
     log_info "Running theme builders"
-    "$REPO_ROOT/custom-themes/builders/theme-builder"
+    "$THEME_SOURCE_DIR/builders/theme-builder"
 }
 
 ensure_generated_theme() {
@@ -76,32 +104,32 @@ ensure_generated_theme() {
         return 0
     fi
 
-    log_info "Generating missing theme file $file"
-    "$REPO_ROOT/custom-themes/builders/$builder"
+    log_info "Generating missing theme file $(display_path "$file")"
+    "$THEME_SOURCE_DIR/builders/$builder"
     require_file "$file"
+}
+
+install_i3_scripts() {
+    local count
+
+    count="$(copy_executables_from_dir "$REPO_ROOT/custom-configs/I3/scripts" "$HOME/.config/i3/scripts")"
+    log_ok "Installed i3 scripts ($count)"
 }
 
 install_i3() {
     copy_file "$REPO_ROOT/custom-configs/I3/config" "$HOME/.config/i3/config"
     install_i3_scripts
-}
-
-install_i3_scripts() {
-    local script src
-    ensure_dir "$HOME/.config/i3/scripts"
-    for src in "$REPO_ROOT"/custom-configs/I3/scripts/*; do
-        [[ -f "$src" ]] || continue
-        script="$(basename -- "$src")"
-        copy_executable "$src" "$HOME/.config/i3/scripts/$script"
-    done
+    log_ok "Installed i3 config"
 }
 
 install_rofi() {
     copy_file "$REPO_ROOT/custom-configs/Rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
+    log_ok "Installed Rofi config"
 }
 
 install_redshift() {
     copy_file "$REPO_ROOT/custom-configs/Redshift/redshift.conf" "$HOME/.config/redshift/redshift.conf"
+    log_ok "Installed Redshift config"
 }
 
 install_dunst() {
@@ -109,39 +137,49 @@ install_dunst() {
     copy_file "$REPO_ROOT/custom-configs/Dunst/dunstrc" "$HOME/.config/dunst/dunstrc"
     ensure_dir "$HOME/.config/dunst/dunstrc.d"
     ln -sfn "$HOME/.config/custom-themes/dunst-theme.dunstrc" "$HOME/.config/dunst/dunstrc.d/90-vault-theme.conf"
-    log_ok "Linked Dunst theme drop-in $HOME/.config/dunst/dunstrc.d/90-vault-theme.conf"
+    log_ok "Installed Dunst config and theme drop-in"
 }
 
 install_betterlockscreen() {
     ensure_generated_theme "$HOME/.config/custom-themes/betterlockscreenrc" theme-build-betterlockscreen
     copy_file "$HOME/.config/custom-themes/betterlockscreenrc" "$HOME/.config/betterlockscreen/betterlockscreenrc"
+    log_ok "Installed Betterlockscreen config"
 }
 
 install_ly() {
     ensure_generated_theme "$HOME/.config/custom-themes/ly-config.ini" theme-build-ly
     copy_system_file "$REPO_ROOT/custom-configs/Ly/xsessions/i3.desktop" "/etc/ly/xsessions/i3.desktop" 0644
     copy_system_file "$HOME/.config/custom-themes/ly-config.ini" "/etc/ly/config.ini" 0644
+    log_ok "Installed Ly config and i3 session"
 }
 
 install_polybar() {
-    local script src
+    local count
+
     copy_file "$REPO_ROOT/custom-configs/Polybar/config.ini" "$HOME/.config/polybar/config.ini"
     copy_executable "$REPO_ROOT/custom-configs/Polybar/launch.sh" "$HOME/.config/polybar/launch.sh"
-    ensure_dir "$HOME/.config/polybar/scripts"
-    for src in "$REPO_ROOT"/custom-configs/Polybar/scripts/*; do
-        [[ -f "$src" ]] || continue
-        script="$(basename -- "$src")"
-        copy_executable "$src" "$HOME/.config/polybar/scripts/$script"
-    done
+    count="$(copy_executables_from_dir "$REPO_ROOT/custom-configs/Polybar/scripts" "$HOME/.config/polybar/scripts")"
+    log_ok "Installed Polybar config, launch script, and $count scripts"
 }
 
 install_alacritty() {
     copy_file "$REPO_ROOT/custom-configs/Alacritty/alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"
+    log_ok "Installed Alacritty config"
 }
 
 install_zsh() {
     copy_file "$REPO_ROOT/custom-configs/Zsh/.zshrc" "$HOME/.zshrc"
     copy_file "$REPO_ROOT/custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json" "$HOME/.config/oh-my-posh/cachyos-compact.omp.json"
+    log_ok "Installed Zsh config and Oh My Posh theme"
+}
+
+remove_stale_managed_file() {
+    local path="${1:?path required}"
+
+    if [[ -e "$path" || -L "$path" ]]; then
+        rm -f "$path"
+        log_ok "Removed stale managed file $(display_path "$path")"
+    fi
 }
 
 install_environment() {
@@ -154,20 +192,29 @@ install_environment() {
     copy_file "$REPO_ROOT/custom-configs/Qt/qt6ct.conf" "$HOME/.config/qt6ct/qt6ct.conf"
     copy_file "$REPO_ROOT/custom-configs/Kvantum/kvantum.kvconfig" "$HOME/.config/Kvantum/kvantum.kvconfig"
     remove_stale_managed_file "$HOME/.config/environment.d/90-gaming.conf"
+    log_ok "Installed session, GTK, Qt, and Kvantum configs"
 }
 
 install_micro() {
     ensure_generated_theme "$HOME/.config/custom-themes/orchis-dark.micro" theme-build-micro
     copy_file "$REPO_ROOT/custom-configs/Micro/settings.json" "$HOME/.config/micro/settings.json"
     copy_file "$HOME/.config/custom-themes/orchis-dark.micro" "$HOME/.config/micro/colorschemes/orchis-dark.micro"
+    log_ok "Installed Micro config and theme"
 }
 
 install_picom() {
     copy_file "$REPO_ROOT/custom-configs/Picom/picom.conf" "$HOME/.config/picom/picom.conf"
+    log_ok "Installed Picom config"
 }
 
 install_nwg_look_config() {
     copy_file "$REPO_ROOT/custom-configs/I3/nwg-look/config" "$HOME/.config/nwg-look/config"
+    log_ok "Installed nwg-look config"
+}
+
+install_wallpaper() {
+    copy_file "$THEME_SOURCE_DIR/wallpaper/wallpaper.jpg" "$HOME/.config/i3/wallpaper.jpg"
+    log_ok "Installed i3 wallpaper"
 }
 
 install_gtk_bookmark_file() {
@@ -203,37 +250,14 @@ install_gtk_bookmark_file() {
 
     install -m 0644 "$tmp" "$dest"
     rm -f "$tmp"
-    log_ok "Installed GTK bookmarks in $dest"
 }
 
 install_gtk_bookmarks() {
-    local src="$REPO_ROOT/custom-configs/GTK/bookmarks"
+    local src="$TWEAK_SOURCE_DIR/gtk-bookmarks/bookmarks"
 
     install_gtk_bookmark_file "$src" "$HOME/.config/gtk-3.0/bookmarks"
     install_gtk_bookmark_file "$src" "$HOME/.config/gtk-4.0/bookmarks"
-}
-
-remove_stale_managed_file() {
-    local path="${1:?path required}"
-
-    if [[ -e "$path" || -L "$path" ]]; then
-        rm -f "$path"
-        log_ok "Removed stale managed file $path"
-    fi
-}
-
-install_file_associations() {
-    copy_executable "$REPO_ROOT/custom-configs/XDG/bin/set-file-extensions" "$HOME/.local/bin/set-file-extensions"
-    ensure_dir "$HOME/.local/share/applications"
-    remove_stale_managed_file "$HOME/.local/bin/archive-smart-extract"
-    remove_stale_managed_file "$HOME/.local/share/applications/archive-smart-extract.desktop"
-    remove_stale_managed_file "$HOME/.local/share/applications/nvim-alacritty.desktop"
-    refresh_desktop_database
-    apply_managed_mime_defaults
-}
-
-install_wallpaper() {
-    copy_file "$REPO_ROOT/custom-themes/wallpaper/wallpaper.jpg" "$HOME/.config/i3/wallpaper.jpg"
+    log_ok "Installed GTK drive bookmarks"
 }
 
 refresh_desktop_database() {
@@ -253,10 +277,21 @@ apply_managed_mime_defaults() {
         log_info "Skipped managed MIME defaults because VAULT_SKIP_MIME_DEFAULTS is set"
     elif command_exists xdg-mime; then
         "$HOME/.local/bin/set-file-extensions" --managed
-        log_ok "Set text MIME defaults to Gedit, folder defaults to Double Commander, and archive defaults to File Roller"
+        log_ok "Applied managed MIME defaults"
     else
         log_warn "xdg-mime not found; managed MIME defaults were not changed"
     fi
+}
+
+install_file_associations() {
+    copy_executable "$TWEAK_SOURCE_DIR/file-associations/set-file-extensions" "$HOME/.local/bin/set-file-extensions"
+    ensure_dir "$HOME/.local/share/applications"
+    remove_stale_managed_file "$HOME/.local/bin/archive-smart-extract"
+    remove_stale_managed_file "$HOME/.local/share/applications/archive-smart-extract.desktop"
+    remove_stale_managed_file "$HOME/.local/share/applications/nvim-alacritty.desktop"
+    refresh_desktop_database
+    apply_managed_mime_defaults
+    log_ok "Installed file-association helper"
 }
 
 reload_systemd_if_safe() {
@@ -270,11 +305,29 @@ reload_systemd_if_safe() {
     fi
 }
 
+findmnt_has_error() {
+    local output="${1:-}"
+
+    printf '%s\n' "$output" | grep -Eq \
+        'parse error at line|(^|[^0-9])[1-9][0-9]* parse errors?|(^|[^0-9])[1-9][0-9]* errors?'
+}
+
+filter_findmnt_output() {
+    local line
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -n "$line" ]] || continue
+        [[ "$line" == *"Success, no errors or warnings detected"* ]] && continue
+        [[ "$line" == *"0 parse errors"* && "$line" == *"0 errors"* && "$line" == *"0 warnings"* ]] && continue
+        printf '%s\n' "$line"
+    done
+}
+
 install_drive_automounts() {
-    local src="$REPO_ROOT/custom-configs/System/fstab-drive-automounts"
+    local src="$TWEAK_SOURCE_DIR/drive-automounts/fstab-drive-automounts"
     local begin="# BEGIN CachyOS-Vault drive automounts"
     local end="# END CachyOS-Vault drive automounts"
-    local tmp fstab_file="/etc/fstab" validation_output
+    local fstab_file="/etc/fstab" relevant_output tmp validation_output validation_status=0
 
     require_file "$src"
 
@@ -303,26 +356,25 @@ install_drive_automounts() {
     } >> "$tmp"
 
     if command_exists findmnt; then
-        validation_output="$(LC_ALL=C findmnt --verify --tab-file "$tmp" 2>&1 || true)"
-        if printf '%s\n' "$validation_output" | grep -Eq 'parse error at line|(^|[^0-9])[1-9][0-9]* parse error'; then
-            while IFS= read -r line; do
+        validation_output="$(LC_ALL=C findmnt --verify --tab-file "$tmp" 2>&1)" || validation_status=$?
+        relevant_output="$(filter_findmnt_output <<< "$validation_output")"
+        if findmnt_has_error "$relevant_output"; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
                 [[ -n "$line" ]] || continue
                 log_error "findmnt: $line"
-            done <<< "$validation_output"
+            done <<< "$relevant_output"
             rm -f "$tmp"
-            die "Generated fstab has parse errors"
+            die "Generated fstab failed validation"
         fi
-    else
-        validation_output=""
-        log_warn "findmnt not found; skipped generated fstab validation"
-    fi
-
-    if [[ -n "$validation_output" ]]; then
-        while IFS= read -r line; do
+        if ((validation_status != 0)); then
+            log_warn "findmnt exited with status $validation_status; no parse errors were reported"
+        fi
+        while IFS= read -r line || [[ -n "$line" ]]; do
             [[ -n "$line" ]] || continue
-            [[ "$line" == *"0 parse errors"* ]] && continue
             log_warn "findmnt: $line"
-        done <<< "$validation_output"
+        done <<< "$relevant_output"
+    else
+        log_warn "findmnt not found; skipped generated fstab validation"
     fi
 
     run_system_command install -m 0644 "$tmp" "$fstab_file"
@@ -347,116 +399,79 @@ enable_system_unit() {
     fi
 }
 
+apply_system_units() {
+    local src="$TWEAK_SOURCE_DIR/system-units/enabled-units.txt"
+    local unit
+
+    require_file "$src"
+    while IFS= read -r unit || [[ -n "$unit" ]]; do
+        [[ -n "$unit" ]] || continue
+        enable_system_unit "$unit"
+    done < "$src"
+}
+
 apply_system_tweaks() {
-    enable_system_unit paccache.timer
-    enable_system_unit 'btrfs-scrub@-.timer'
-    enable_system_unit 'btrfs-scrub@mnt-data\x2dhdd.timer'
+    apply_system_units
 }
 
 apply_cursor_hardening() {
-    copy_file "$REPO_ROOT/custom-configs/I3/cursor-hardening/index.theme" "$HOME/.icons/default/index.theme"
-    copy_file "$REPO_ROOT/custom-configs/I3/cursor-hardening/.Xresources" "$HOME/.Xresources"
+    copy_file "$TWEAK_SOURCE_DIR/cursor-hardening/index.theme" "$HOME/.icons/default/index.theme"
+    copy_file "$TWEAK_SOURCE_DIR/cursor-hardening/.Xresources" "$HOME/.Xresources"
 
     if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
         log_info "Skipped xrdb merge because VAULT_SKIP_RELOAD is set"
     elif command_exists xrdb; then
-        if xrdb -merge "$HOME/.Xresources"; then
-            log_ok "Merged $HOME/.Xresources"
-        else
-            log_warn "xrdb merge failed; continuing"
-        fi
+        xrdb -merge "$HOME/.Xresources"
+        log_ok "Merged ~/.Xresources"
     else
         log_warn "xrdb not found; skipped Xresources merge"
     fi
+
+    log_ok "Installed cursor hardening"
 }
 
-run_nwg_look() {
-    if [[ -n "${VAULT_SKIP_NWG_LOOK:-}" ]]; then
-        log_info "Skipped nwg-look because VAULT_SKIP_NWG_LOOK is set"
-    elif command_exists nwg-look; then
-        log_info "Launching nwg-look"
-        nwg-look &
+expand_home_path() {
+    local path="${1:?path required}"
+
+    if [[ "$path" == "~/"* ]]; then
+        printf '%s/%s\n' "$HOME" "${path#"~/"}"
     else
-        log_warn "nwg-look not found; skipped launch"
+        printf '%s\n' "$path"
     fi
+}
+
+render_betterlockscreen_cache() {
+    local src="$TWEAK_SOURCE_DIR/betterlockscreen-cache/wallpaper-path"
+    local wallpaper
+
+    require_file "$src"
+    IFS= read -r wallpaper < "$src"
+    wallpaper="$(expand_home_path "$wallpaper")"
+
+    betterlockscreen -u "$wallpaper"
+    log_ok "Rendered Betterlockscreen cache from $(display_path "$wallpaper")"
 }
 
 reload_i3() {
     if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
         log_info "Skipped i3 reload/restart because VAULT_SKIP_RELOAD is set"
-        return 1
-    elif command_exists i3-msg; then
-        if command_exists timeout; then
-            if timeout 5s i3-msg reload >/dev/null; then
-                log_ok "Reloaded i3"
-                if timeout 5s i3-msg restart >/dev/null; then
-                    log_ok "Restarted i3"
-                    return 0
-                fi
-                log_warn "i3 restart did not complete cleanly; continuing"
-                return 1
-            fi
-        elif i3-msg reload >/dev/null; then
-            log_ok "Reloaded i3"
-            if i3-msg restart >/dev/null; then
-                log_ok "Restarted i3"
-                return 0
-            fi
-            log_warn "i3 restart did not complete cleanly; continuing"
-            return 1
-        fi
-        log_warn "i3 reload did not complete cleanly; continuing"
-        return 1
-    else
+        return 0
+    fi
+
+    if ! command_exists i3-msg; then
         log_warn "i3-msg not found; skipped i3 reload/restart"
-        return 1
+        return 0
     fi
-}
 
-reload_polybar() {
-    if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
-        log_info "Skipped Polybar reload because VAULT_SKIP_RELOAD is set"
-    elif [[ -x "$HOME/.config/polybar/launch.sh" ]] && command_exists polybar; then
-        if command_exists timeout; then
-            if timeout 10s "$HOME/.config/polybar/launch.sh"; then
-                log_ok "Reloaded Polybar"
-            else
-                log_warn "Polybar reload did not complete cleanly; continuing"
-            fi
-        elif "$HOME/.config/polybar/launch.sh"; then
-            log_ok "Reloaded Polybar"
-        else
-            log_warn "Polybar reload failed; continuing"
-        fi
+    if command_exists timeout; then
+        timeout 5s i3-msg reload >/dev/null
+        timeout 5s i3-msg restart >/dev/null
     else
-        log_warn "Polybar reload skipped; polybar or launch script unavailable"
+        i3-msg reload >/dev/null
+        i3-msg restart >/dev/null
     fi
-}
 
-reload_dunst() {
-    if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
-        log_info "Skipped Dunst reload because VAULT_SKIP_RELOAD is set"
-    elif command_exists dunstctl; then
-        if dunstctl reload >/dev/null 2>&1; then
-            log_ok "Reloaded Dunst"
-        else
-            log_warn "Dunst reload failed; restart Dunst manually if needed"
-        fi
-    else
-        log_warn "Dunst reload skipped; dunstctl unavailable"
-    fi
-}
-
-reload_picom_if_safe() {
-    log_info "Picom config installed. Restart Picom manually or restart i3 if needed."
-}
-
-reload_betterlockscreen_if_safe() {
-    log_info "Betterlockscreen config installed. Run 'betterlockscreen -u ~/.config/i3/wallpaper.jpg' if the lockscreen cache needs refreshing."
-}
-
-reload_ly_if_safe() {
-    log_info "Ly config installed. Restart or enable ly manually when ready."
+    log_ok "Reloaded and restarted i3"
 }
 
 install_app_config() {
@@ -467,53 +482,28 @@ install_app_config() {
     fi
 
     case "$name" in
-        i3)
-            install_i3
-            reload_i3
-            ;;
-        i3-scripts)
-            install_i3_scripts
-            reload_i3
-            ;;
+        i3) install_i3 ;;
+        i3-scripts) install_i3_scripts ;;
         rofi) install_rofi ;;
         redshift) install_redshift ;;
-        dunst)
-            install_dunst
-            reload_dunst
-            ;;
-        betterlockscreen)
-            install_betterlockscreen
-            reload_betterlockscreen_if_safe
-            ;;
-        ly)
-            install_ly
-            reload_ly_if_safe
-            ;;
-        polybar)
-            install_polybar
-            reload_polybar
-            ;;
+        dunst) install_dunst ;;
+        betterlockscreen) install_betterlockscreen ;;
+        ly) install_ly ;;
+        polybar) install_polybar ;;
         alacritty) install_alacritty ;;
         zsh) install_zsh ;;
         environment) install_environment ;;
         micro) install_micro ;;
-        picom)
-            install_picom
-            reload_picom_if_safe
-            ;;
+        picom) install_picom ;;
         nwg-look) install_nwg_look_config ;;
-        gtk-bookmarks) install_gtk_bookmarks ;;
-        file-associations) install_file_associations ;;
-        cursor-hardening) apply_cursor_hardening ;;
         wallpaper) install_wallpaper ;;
-        drive-automounts) install_drive_automounts ;;
-        system-tweaks) apply_system_tweaks ;;
         *) die "Config group is registered but has no installer: $name" ;;
     esac
 }
 
 install_selected_configs() {
     local name
+
     for name in "$@"; do
         install_app_config "$name"
     done
@@ -533,19 +523,31 @@ install_all_configs() {
     install_micro
     install_picom
     install_nwg_look_config
-    install_gtk_bookmarks
-    install_file_associations
     install_wallpaper
-    install_drive_automounts
-    apply_system_tweaks
-    apply_cursor_hardening
-    if reload_i3; then
-        log_info "Skipped direct Polybar reload because i3 reload/restart runs Polybar launch"
-    else
-        reload_polybar
+}
+
+run_tweak() {
+    local name="${1:?tweak name required}"
+
+    if ! vault_tweak_exists "$name"; then
+        die "Unknown tweak: $name"
     fi
-    reload_dunst
-    reload_betterlockscreen_if_safe
-    reload_ly_if_safe
-    reload_picom_if_safe
+
+    case "$name" in
+        file-associations) install_file_associations ;;
+        drive-automounts) install_drive_automounts ;;
+        gtk-bookmarks) install_gtk_bookmarks ;;
+        cursor-hardening) apply_cursor_hardening ;;
+        system-units) apply_system_units ;;
+        betterlockscreen-cache) render_betterlockscreen_cache ;;
+        *) die "Tweak is registered but has no installer: $name" ;;
+    esac
+}
+
+run_selected_tweaks() {
+    local name
+
+    for name in "$@"; do
+        run_tweak "$name"
+    done
 }

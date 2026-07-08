@@ -1,0 +1,9 @@
+alacritty
+audacity
+doublecmd-qt5
+file-roller
+gedit
+kolourpaint
+mpv
+qbittorrent
+viewnior

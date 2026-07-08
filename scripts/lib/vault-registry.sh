@@ -25,13 +25,17 @@ VAULT_CONFIG_GROUPS=(
     micro
     picom
     nwg-look
-    gtk-bookmarks
-    file-associations
-    cursor-hardening
     wallpaper
     i3-scripts
+)
+
+VAULT_TWEAKS=(
+    file-associations
     drive-automounts
-    system-tweaks
+    gtk-bookmarks
+    cursor-hardening
+    system-units
+    betterlockscreen-cache
 )
 
 vault_config_group_exists() {
@@ -51,6 +55,17 @@ vault_theme_builder_exists() {
 
     for builder in "${VAULT_THEME_BUILDERS[@]}"; do
         [[ "$builder" == "$expected" ]] && return 0
+    done
+
+    return 1
+}
+
+vault_tweak_exists() {
+    local expected="$1"
+    local tweak
+
+    for tweak in "${VAULT_TWEAKS[@]}"; do
+        [[ "$tweak" == "$expected" ]] && return 0
     done
 
     return 1

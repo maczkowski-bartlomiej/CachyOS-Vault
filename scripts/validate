@@ -26,6 +26,19 @@ run_check() {
     fi
 }
 
+write_command_stub() {
+    local path="${1:?path required}"
+    local name="${2:?name required}"
+
+    cat > "$path" <<STUB
+#!/usr/bin/env bash
+printf '$name' >> "\$VAULT_COMMAND_LOG"
+printf ' %s' "\$@" >> "\$VAULT_COMMAND_LOG"
+printf '\\n' >> "\$VAULT_COMMAND_LOG"
+STUB
+    chmod +x "$path"
+}
+
 check_shell_syntax() {
     local file
 
@@ -35,7 +48,7 @@ check_shell_syntax() {
         find "$REPO_ROOT" \
             -path "$REPO_ROOT/.git" -prune -o \
             -type f \
-            \( -name '*.sh' -o -path '*/scripts/*' -o -path '*/builders/*' -o -path '*/installers/*' -o -path '*/bin/*' \) \
+            \( -name '*.sh' -o -path '*/scripts/*' -o -path '*/builders/*' -o -path '*/installers/*' -o -path '*/bin/*' -o -path '*/custom-tweaks/*' \) \
             -print
     )
 }
@@ -51,7 +64,7 @@ check_theme_builder() {
 
     tmp_home="$(mktemp -d)"
     trap 'rm -rf "$tmp_home"' RETURN
-    HOME="$tmp_home" "$REPO_ROOT/custom-themes/builders/theme-builder"
+    HOME="$tmp_home" "$REPO_ROOT/custom-configs/Themes/builders/theme-builder"
 
     test -f "$tmp_home/.config/custom-themes/i3-theme.i3"
     test -f "$tmp_home/.config/custom-themes/rofi-theme.rasi"
@@ -74,19 +87,17 @@ check_theme_builder() {
     rg -q '^waylandsessions = null$' "$tmp_home/.config/custom-themes/ly-config.ini"
     rg -q '^xinitrc = null$' "$tmp_home/.config/custom-themes/ly-config.ini"
     rg -q '^xsessions = /etc/ly/xsessions$' "$tmp_home/.config/custom-themes/ly-config.ini"
-    test -f "$REPO_ROOT/custom-configs/Ly/xsessions/i3.desktop"
-    rg -q '^Exec=/usr/bin/i3$' "$REPO_ROOT/custom-configs/Ly/xsessions/i3.desktop"
 
     rm -rf "$tmp_home"
     trap - RETURN
 }
 
-check_installer_dry_run() {
+check_install_configs_dry_run() {
     local tmp_home
 
     tmp_home="$(mktemp -d)"
     trap 'rm -rf "$tmp_home"' RETURN
-    HOME="$tmp_home" VAULT_SKIP_RELOAD=1 VAULT_SKIP_SYSTEM_CONFIGS=1 "$REPO_ROOT/installers/install-all"
+    HOME="$tmp_home" VAULT_SKIP_RELOAD=1 VAULT_SKIP_SYSTEM_CONFIGS=1 "$REPO_ROOT/installers/install-configs"
 
     test -f "$tmp_home/.config/i3/config"
     test -x "$tmp_home/.config/i3/scripts/mouse-warp"
@@ -97,6 +108,7 @@ check_installer_dry_run() {
     test -x "$tmp_home/.config/i3/scripts/screenshot-lib"
     test -x "$tmp_home/.config/i3/scripts/volume-osd"
     test -x "$tmp_home/.config/i3/scripts/xob-listener"
+    test -f "$tmp_home/.config/i3/wallpaper.jpg"
     test -f "$tmp_home/.config/rofi/config.rasi"
     test -f "$tmp_home/.config/redshift/redshift.conf"
     test -f "$tmp_home/.config/dunst/dunstrc"
@@ -106,6 +118,7 @@ check_installer_dry_run() {
     test -f "$tmp_home/.config/custom-themes/ly-config.ini"
     test -f "$REPO_ROOT/custom-configs/Ly/xsessions/i3.desktop"
     test -f "$tmp_home/.config/polybar/config.ini"
+    test -x "$tmp_home/.config/polybar/launch.sh"
     test -x "$tmp_home/.config/polybar/scripts/polybar-script-lib.sh"
     test -x "$tmp_home/.config/polybar/scripts/audio-player.sh"
     test -f "$tmp_home/.config/alacritty/alacritty.toml"
@@ -137,51 +150,11 @@ check_installer_dry_run() {
     test -f "$tmp_home/.config/micro/settings.json"
     test -f "$tmp_home/.config/micro/colorschemes/orchis-dark.micro"
     test -f "$tmp_home/.config/picom/picom.conf"
-    test -f "$tmp_home/.config/gtk-3.0/bookmarks"
-    test -f "$tmp_home/.config/gtk-4.0/bookmarks"
-    rg -q '^file:///mnt/dev Dev$' "$tmp_home/.config/gtk-3.0/bookmarks"
-    rg -q '^file:///mnt/dev-data Dev Data$' "$tmp_home/.config/gtk-3.0/bookmarks"
-    rg -q '^file:///mnt/data-hdd Data HDD$' "$tmp_home/.config/gtk-3.0/bookmarks"
-    test -x "$tmp_home/.local/bin/set-file-extensions"
-    test ! -e "$tmp_home/.local/bin/archive-smart-extract"
-    test ! -e "$tmp_home/.local/share/applications/archive-smart-extract.desktop"
-    test ! -e "$tmp_home/.local/share/applications/nvim-alacritty.desktop"
-    if command_exists gio; then
-        HOME="$tmp_home" gio mime application/zip | rg -q 'Default application.*org\.gnome\.FileRoller\.desktop'
-        HOME="$tmp_home" gio mime text/plain | rg -q 'Default application.*org\.gnome\.gedit\.desktop'
-        HOME="$tmp_home" gio mime application/json | rg -q 'Default application.*org\.gnome\.gedit\.desktop'
-        HOME="$tmp_home" gio mime inode/directory | rg -q 'Default application.*doublecmd\.desktop'
-    fi
-    rg -q '^application/zip=org\.gnome\.FileRoller\.desktop' "$tmp_home/.config/mimeapps.list"
-    rg -q '^text/plain=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
-    rg -q '^application/json=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
-    rg -q '^inode/directory=doublecmd\.desktop' "$tmp_home/.config/mimeapps.list"
-    ! rg -q '^text/html=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    test -f "$tmp_home/.config/nwg-look/config"
 
-    rm -rf "$tmp_home"
-    trap - RETURN
-}
-
-check_file_associations_config() {
-    local set_extensions="$REPO_ROOT/custom-configs/XDG/bin/set-file-extensions"
-    local tmp_home
-
-    require_file "$set_extensions"
-    test -x "$set_extensions"
-    ! rg -n '/home/lysy|nvim|thunar|archive-smart-extract' "$set_extensions"
-    rg -q '^TEXT_DESKTOP=.*org\.gnome\.gedit\.desktop' "$set_extensions"
-    rg -q '^FILES_DESKTOP=.*doublecmd\.desktop' "$set_extensions"
-    rg -q '^ARCHIVE_DESKTOP=.*org\.gnome\.FileRoller\.desktop' "$set_extensions"
-
-    tmp_home="$(mktemp -d)"
-    trap 'rm -rf "$tmp_home"' RETURN
-    HOME="$tmp_home" "$set_extensions" --managed
-
-    rg -q '^text/plain=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
-    rg -q '^application/json=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
-    rg -q '^inode/directory=doublecmd\.desktop' "$tmp_home/.config/mimeapps.list"
-    rg -q '^application/zip=org\.gnome\.FileRoller\.desktop' "$tmp_home/.config/mimeapps.list"
-    ! rg -q '^text/html=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    ! test -f "$tmp_home/.config/gtk-3.0/bookmarks"
+    ! test -x "$tmp_home/.local/bin/set-file-extensions"
+    ! test -f "$tmp_home/.icons/default/index.theme"
 
     rm -rf "$tmp_home"
     trap - RETURN
@@ -197,13 +170,7 @@ check_i3_reload_restart() {
     install -d "$tmp_bin"
     : > "$log_file"
 
-    cat > "$tmp_bin/i3-msg" <<'STUB'
-#!/usr/bin/env bash
-printf 'i3-msg' >> "$VAULT_COMMAND_LOG"
-printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
-printf '\n' >> "$VAULT_COMMAND_LOG"
-STUB
-    chmod +x "$tmp_bin/i3-msg"
+    write_command_stub "$tmp_bin/i3-msg" i3-msg
 
     PATH="$tmp_bin:$PATH" HOME="$tmp_home" REPO_ROOT="$REPO_ROOT" VAULT_COMMAND_LOG="$log_file" bash -c '
         set -euo pipefail
@@ -218,80 +185,36 @@ STUB
     trap - RETURN
 }
 
-check_gtk_bookmarks() {
-    local src="$REPO_ROOT/custom-configs/GTK/bookmarks"
+check_tweak_sources() {
+    local src
 
+    src="$REPO_ROOT/custom-tweaks/file-associations/set-file-extensions"
+    require_file "$src"
+    test -x "$src"
+    ! rg -n '/home/lysy|nvim|thunar|archive-smart-extract' "$src"
+    rg -q '^TEXT_DESKTOP=.*org\.gnome\.gedit\.desktop' "$src"
+    rg -q '^FILES_DESKTOP=.*doublecmd\.desktop' "$src"
+    rg -q '^ARCHIVE_DESKTOP=.*org\.gnome\.FileRoller\.desktop' "$src"
+
+    src="$REPO_ROOT/custom-tweaks/gtk-bookmarks/bookmarks"
     require_file "$src"
     rg -q '^file:///mnt/dev Dev$' "$src"
     rg -q '^file:///mnt/dev-data Dev Data$' "$src"
     rg -q '^file:///mnt/data-hdd Data HDD$' "$src"
-}
 
-check_drive_automounts() {
-    local src="$REPO_ROOT/custom-configs/System/fstab-drive-automounts"
-    local line mountpoint options fields tmp output
-
+    src="$REPO_ROOT/custom-tweaks/drive-automounts/fstab-drive-automounts"
     require_file "$src"
-
     rg -q '^UUID=F85EFF175EFECCFE[[:space:]]+/mnt/dev[[:space:]]+ntfs3[[:space:]]' "$src"
     rg -q '^UUID=4EBE9588BE95696B[[:space:]]+/mnt/dev-data[[:space:]]+ntfs3[[:space:]]' "$src"
     rg -q '^UUID=16654759-f0f4-4933-bf8d-223be0319a42[[:space:]]+/mnt/data-hdd[[:space:]]+btrfs[[:space:]]' "$src"
-    command_exists findmnt
 
-    while IFS= read -r line; do
-        [[ -n "$line" && "$line" != \#* ]] || continue
-        read -r -a fields <<< "$line"
-        [[ "${#fields[@]}" -eq 6 ]] || return 1
-
-        mountpoint="${fields[1]}"
-        options="${fields[3]}"
-        case "$mountpoint" in
-            /mnt/dev|/mnt/dev-data|/mnt/data-hdd) ;;
-            *) return 1 ;;
-        esac
-
-        [[ "$options" == *nofail* ]] || return 1
-        [[ "$options" == *x-systemd.automount* ]] || return 1
-        [[ "$options" == *x-systemd.device-timeout=5s* ]] || return 1
-    done < "$src"
-
-    tmp="$(mktemp)"
-    cat "$src" > "$tmp"
-    output="$(LC_ALL=C findmnt --verify --tab-file "$tmp" 2>&1 || true)"
-    rm -f "$tmp"
-
-    ! printf '%s\n' "$output" | grep -Eq 'parse error at line|(^|[^0-9])[1-9][0-9]* parse error'
+    require_file "$REPO_ROOT/custom-tweaks/cursor-hardening/index.theme"
+    require_file "$REPO_ROOT/custom-tweaks/cursor-hardening/.Xresources"
+    require_file "$REPO_ROOT/custom-tweaks/system-units/enabled-units.txt"
+    require_file "$REPO_ROOT/custom-tweaks/betterlockscreen-cache/wallpaper-path"
 }
 
-check_package_manifests() {
-    local file
-
-    for file in "$REPO_ROOT"/packages/core.txt "$REPO_ROOT"/packages/apps.txt "$REPO_ROOT"/packages/aur.txt; do
-        LC_ALL=C sort -c "$file"
-        ! grep -n '^[[:space:]]*$\|[[:space:]]#' "$file"
-    done
-
-    rg -q '^btrfs-progs$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^inter-font$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^kvantum$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^kvantum-qt5$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^oh-my-zsh-git$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^pacman-contrib$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^qt5ct$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^qt6ct$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^xdg-utils$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^zsh$' "$REPO_ROOT/packages/core.txt"
-    rg -q '^doublecmd-qt5$' "$REPO_ROOT/packages/apps.txt"
-    rg -q '^file-roller$' "$REPO_ROOT/packages/apps.txt"
-    rg -q '^gedit$' "$REPO_ROOT/packages/apps.txt"
-    ! rg -q '^neovim$' "$REPO_ROOT/packages/apps.txt"
-    ! rg -q '^thunar$' "$REPO_ROOT/packages/apps.txt"
-    rg -q '^betterlockscreen$' "$REPO_ROOT/packages/aur.txt"
-    rg -q '^oh-my-posh-bin$' "$REPO_ROOT/packages/aur.txt"
-    rg -q '^plasma6-themes-orchis-kde-git$' "$REPO_ROOT/packages/aur.txt"
-}
-
-check_package_installer_routing() {
+check_install_tweaks_picker() {
     local tmp_home tmp_bin log_file
 
     tmp_home="$(mktemp -d)"
@@ -301,32 +224,133 @@ check_package_installer_routing() {
     install -d "$tmp_bin"
     : > "$log_file"
 
-    cat > "$tmp_bin/shelly" <<'STUB'
+    cat > "$tmp_bin/xdg-mime" <<'STUB'
 #!/usr/bin/env bash
-printf 'shelly' >> "$VAULT_COMMAND_LOG"
-printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
-printf '\n' >> "$VAULT_COMMAND_LOG"
+printf 'xdg-mime %s\n' "$*" >> "$VAULT_COMMAND_LOG"
+if [[ "${1:-}" == "default" ]]; then
+    mkdir -p "$HOME/.config"
+    printf '%s=%s\n' "${3:?mime required}" "${2:?desktop required}" >> "$HOME/.config/mimeapps.list"
+fi
 STUB
 
-    cat > "$tmp_bin/pacman" <<'STUB'
+    cat > "$tmp_bin/gio" <<'STUB'
 #!/usr/bin/env bash
-printf 'pacman' >> "$VAULT_COMMAND_LOG"
-printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
-printf '\n' >> "$VAULT_COMMAND_LOG"
+printf 'gio %s\n' "$*" >> "$VAULT_COMMAND_LOG"
 STUB
 
-    cat > "$tmp_bin/paru" <<'STUB'
+    cat > "$tmp_bin/findmnt" <<'STUB'
 #!/usr/bin/env bash
-printf 'paru' >> "$VAULT_COMMAND_LOG"
-printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
-printf '\n' >> "$VAULT_COMMAND_LOG"
+printf 'findmnt %s\n' "$*" >> "$VAULT_COMMAND_LOG"
+printf 'Success, no errors or warnings detected\n'
+STUB
+
+    cat > "$tmp_bin/systemctl" <<'STUB'
+#!/usr/bin/env bash
+printf 'systemctl %s\n' "$*" >> "$VAULT_COMMAND_LOG"
+STUB
+
+    cat > "$tmp_bin/xrdb" <<'STUB'
+#!/usr/bin/env bash
+printf 'xrdb %s\n' "$*" >> "$VAULT_COMMAND_LOG"
+STUB
+
+    cat > "$tmp_bin/betterlockscreen" <<'STUB'
+#!/usr/bin/env bash
+printf 'betterlockscreen %s\n' "$*" >> "$VAULT_COMMAND_LOG"
+STUB
+
+    cat > "$tmp_bin/update-desktop-database" <<'STUB'
+#!/usr/bin/env bash
+printf 'update-desktop-database %s\n' "$*" >> "$VAULT_COMMAND_LOG"
 STUB
 
     cat > "$tmp_bin/sudo" <<'STUB'
 #!/usr/bin/env bash
-printf 'sudo' >> "$VAULT_COMMAND_LOG"
-printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
-printf '\n' >> "$VAULT_COMMAND_LOG"
+printf 'sudo %s\n' "$*" >> "$VAULT_COMMAND_LOG"
+if [[ "${1:-}" == "systemctl" ]]; then
+    "$@"
+fi
+STUB
+
+    chmod +x "$tmp_bin"/*
+
+    printf 'all\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
+        "$REPO_ROOT/installers/install-tweaks"
+
+    test -x "$tmp_home/.local/bin/set-file-extensions"
+    rg -q '^text/plain=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^application/json=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^inode/directory=doublecmd\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^application/zip=org\.gnome\.FileRoller\.desktop' "$tmp_home/.config/mimeapps.list"
+    ! rg -q '^text/html=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    test -f "$tmp_home/.config/gtk-3.0/bookmarks"
+    test -f "$tmp_home/.config/gtk-4.0/bookmarks"
+    rg -q '^file:///mnt/dev Dev$' "$tmp_home/.config/gtk-3.0/bookmarks"
+    test -f "$tmp_home/.icons/default/index.theme"
+    test -f "$tmp_home/.Xresources"
+    rg -q '^findmnt --verify --tab-file ' "$log_file"
+    rg -q '^systemctl daemon-reload$' "$log_file"
+    rg -q '^systemctl enable --now paccache\.timer$' "$log_file"
+    rg -q "^xrdb -merge $tmp_home/\\.Xresources$" "$log_file"
+    rg -q "^betterlockscreen -u $tmp_home/\\.config/i3/wallpaper\\.jpg$" "$log_file"
+
+    : > "$log_file"
+    printf '\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
+        "$REPO_ROOT/installers/install-tweaks"
+    ! test -s "$log_file"
+
+    rm -rf "$tmp_home"
+    trap - RETURN
+}
+
+check_package_manifests() {
+    local file
+
+    for file in "$REPO_ROOT"/custom-packages/*.txt; do
+        LC_ALL=C sort -c "$file"
+        ! grep -n '^[[:space:]]*$\|[[:space:]]#' "$file"
+    done
+
+    rg -q '^alacritty$' "$REPO_ROOT/custom-packages/pacman-core-apps.txt"
+    rg -q '^audacity$' "$REPO_ROOT/custom-packages/pacman-core-apps.txt"
+    rg -q '^doublecmd-qt5$' "$REPO_ROOT/custom-packages/pacman-core-apps.txt"
+    rg -q '^file-roller$' "$REPO_ROOT/custom-packages/pacman-core-apps.txt"
+    rg -q '^gedit$' "$REPO_ROOT/custom-packages/pacman-core-apps.txt"
+    rg -q '^mpv$' "$REPO_ROOT/custom-packages/pacman-core-apps.txt"
+    rg -q '^btrfs-progs$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^inter-font$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^kvantum$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^kvantum-qt5$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^oh-my-zsh-git$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^pacman-contrib$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^qt5ct$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^qt6ct$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^xdg-utils$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^zsh$' "$REPO_ROOT/custom-packages/pacman-core.txt"
+    rg -q '^brave-origin-bin$' "$REPO_ROOT/custom-packages/pacman-extra-work.txt"
+    rg -q '^betterlockscreen$' "$REPO_ROOT/custom-packages/aur.txt"
+    rg -q '^oh-my-posh-bin$' "$REPO_ROOT/custom-packages/aur.txt"
+    rg -q '^plasma6-themes-orchis-kde-git$' "$REPO_ROOT/custom-packages/aur.txt"
+    rg -q '^com.github.marktext.marktext$' "$REPO_ROOT/custom-packages/flatpak.txt"
+}
+
+check_package_installer_picker() {
+    local tmp_home tmp_bin log_file
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+    tmp_bin="$tmp_home/bin"
+    log_file="$tmp_home/commands.log"
+    install -d "$tmp_bin"
+    : > "$log_file"
+
+    write_command_stub "$tmp_bin/shelly" shelly
+    write_command_stub "$tmp_bin/pacman" pacman
+    write_command_stub "$tmp_bin/paru" paru
+
+    cat > "$tmp_bin/sudo" <<'STUB'
+#!/usr/bin/env bash
+printf 'sudo %s\n' "$*" >> "$VAULT_COMMAND_LOG"
 "$@"
 STUB
 
@@ -335,45 +359,73 @@ STUB
 if [[ "${1:-}" == "remotes" ]]; then
     exit 0
 fi
-printf 'flatpak' >> "$VAULT_COMMAND_LOG"
-printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
-printf '\n' >> "$VAULT_COMMAND_LOG"
+printf 'flatpak %s\n' "$*" >> "$VAULT_COMMAND_LOG"
 STUB
 
-    chmod +x "$tmp_bin/shelly" "$tmp_bin/pacman" "$tmp_bin/paru" "$tmp_bin/sudo" "$tmp_bin/flatpak"
+    chmod +x "$tmp_bin"/*
 
-    PATH="$tmp_bin:$PATH" HOME="$tmp_home" DISPLAY=:99 VAULT_COMMAND_LOG="$log_file" \
-        VAULT_PACKAGE_MANAGER=shelly "$REPO_ROOT/installers/install-packages" --core --apps
+    printf 'all\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
+        VAULT_PACKAGE_MANAGER=shelly "$REPO_ROOT/installers/install-packages"
     rg -q '^shelly install .*brightnessctl' "$log_file"
     rg -q '^shelly install .*bitwarden' "$log_file"
-    ! rg -q -- '--ui-mode' "$log_file"
-
-    : > "$log_file"
-    PATH="$tmp_bin:$PATH" HOME="$tmp_home" DISPLAY=:99 VAULT_COMMAND_LOG="$log_file" \
-        VAULT_PACKAGE_MANAGER=shelly-ui "$REPO_ROOT/installers/install-packages" --aur
     rg -q '^shelly aur install .*betterlockscreen' "$log_file"
-    ! rg -q -- '--ui-mode' "$log_file"
-
-    : > "$log_file"
-    PATH="$tmp_bin:$PATH" HOME="$tmp_home" DISPLAY=:99 VAULT_COMMAND_LOG="$log_file" \
-        VAULT_PACKAGE_MANAGER=shelly "$REPO_ROOT/installers/install-packages" --flatpak
     rg -q '^flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo$' "$log_file"
     rg -q '^shelly flatpak install com.super_productivity.SuperProductivity --user -r flathub$' "$log_file"
     ! rg -q -- '--ui-mode' "$log_file"
 
     : > "$log_file"
-    PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
-        VAULT_PACKAGE_MANAGER=legacy VAULT_AUR_HELPER=paru "$REPO_ROOT/installers/install-packages" --core --aur --flatpak
+    printf 'all\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
+        VAULT_PACKAGE_MANAGER=legacy VAULT_AUR_HELPER=paru "$REPO_ROOT/installers/install-packages"
     rg -q '^pacman -S --needed .*brightnessctl' "$log_file"
+    rg -q '^pacman -S --needed .*bitwarden' "$log_file"
     rg -q '^paru -S --needed .*betterlockscreen' "$log_file"
-    rg -q '^flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo$' "$log_file"
     rg -q '^flatpak install -y --user flathub .*com.github.marktext.marktext' "$log_file"
+
+    : > "$log_file"
+    printf '\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
+        VAULT_PACKAGE_MANAGER=shelly "$REPO_ROOT/installers/install-packages"
+    ! test -s "$log_file"
+
+    rm -rf "$tmp_home"
+    trap - RETURN
+}
+
+check_configure_themes() {
+    local command tmp_home tmp_bin log_file tool_log_dir
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+    tmp_bin="$tmp_home/bin"
+    log_file="$tmp_home/commands.log"
+    tool_log_dir="$tmp_home/theme-logs"
+    install -d "$tmp_bin"
+    : > "$log_file"
+
+    for command in nwg-look qt5ct qt6ct kvantummanager; do
+        write_command_stub "$tmp_bin/$command" "$command"
+    done
+
+    printf '\n\n\n\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
+        VAULT_THEME_TOOL_LOG_DIR="$tool_log_dir" "$REPO_ROOT/installers/configure-themes"
+
+    rg -q '^nwg-look$' "$log_file"
+    rg -q '^qt5ct$' "$log_file"
+    rg -q '^qt6ct$' "$log_file"
+    rg -q '^kvantummanager$' "$log_file"
+    test -f "$tool_log_dir/nwg-look.log"
+    test -f "$tool_log_dir/qt5ct.log"
+    test -f "$tool_log_dir/qt6ct.log"
+    test -f "$tool_log_dir/kvantummanager.log"
 
     rm -rf "$tmp_home"
     trap - RETURN
 }
 
 check_stale_names() {
+    ! test -d "$REPO_ROOT/packages"
+    ! test -d "$REPO_ROOT/custom-themes"
+    ! find "$REPO_ROOT/custom-configs/Zsh" -name '.zcompdump*' -print | rg .
+
     ! rg -n 'ytmusic\.sh|powermenu\.sh|polybar-theme\.sh' "$REPO_ROOT" \
         -g '!scripts/validate' \
         -g '!*.jpg' \
@@ -382,8 +434,12 @@ check_stale_names() {
         -g '!*.jpg' \
         -g '!*.png'
     ! rg -n 'Thunar|thunar|nvim-alacritty|archive-smart-extract|neovim' \
-        "$REPO_ROOT/custom-configs" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
-        "$REPO_ROOT/packages" "$REPO_ROOT/scripts/lib" \
+        "$REPO_ROOT/custom-configs" "$REPO_ROOT/custom-tweaks" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
+        "$REPO_ROOT/custom-packages" "$REPO_ROOT/scripts/lib" \
+        -g '!*.jpg' \
+        -g '!*.png'
+    ! rg -n 'install-all-with-nwg-look|installers/install-all([^a-zA-Z0-9_-]|$)|packages/core\.txt|packages/apps\.txt' \
+        "$REPO_ROOT/README.md" "$REPO_ROOT/docs" "$REPO_ROOT/installers" "$REPO_ROOT/scripts/lib" \
         -g '!*.jpg' \
         -g '!*.png'
 }
@@ -391,10 +447,15 @@ check_stale_names() {
 check_dunst_config() {
     local output tmp_home
 
+    if ! command_exists dunst; then
+        log_warn "dunst not found; skipped config parse"
+        return 0
+    fi
+
     tmp_home="$(mktemp -d)"
     trap 'rm -rf "$tmp_home"' RETURN
 
-    HOME="$tmp_home" "$REPO_ROOT/custom-themes/builders/theme-build-dunst"
+    HOME="$tmp_home" "$REPO_ROOT/custom-configs/Themes/builders/theme-build-dunst"
     install -d "$tmp_home/.config/dunst/dunstrc.d"
     ln -s "$tmp_home/.config/custom-themes/dunst-theme.dunstrc" "$tmp_home/.config/dunst/dunstrc.d/90-vault-theme.conf"
 
@@ -413,23 +474,27 @@ check_polybar_smoke() {
 }
 
 check_registry() {
-    local builder group
+    local builder group tweak
 
     # shellcheck source=lib/vault-registry.sh
     source "$REPO_ROOT/scripts/lib/vault-registry.sh"
 
     for builder in "${VAULT_THEME_BUILDERS[@]}"; do
-        test -x "$REPO_ROOT/custom-themes/builders/$builder"
+        test -x "$REPO_ROOT/custom-configs/Themes/builders/$builder"
         rg -q "$builder" "$REPO_ROOT/docs"
     done
 
     for group in "${VAULT_CONFIG_GROUPS[@]}"; do
         rg -q "$group" "$REPO_ROOT/installers/lib/install-lib.sh"
     done
+
+    for tweak in "${VAULT_TWEAKS[@]}"; do
+        rg -q "$tweak" "$REPO_ROOT/installers/install-tweaks" "$REPO_ROOT/installers/lib/install-lib.sh"
+    done
 }
 
 check_shellcheck_if_available() {
-    if ! command -v shellcheck >/dev/null 2>&1; then
+    if ! command_exists shellcheck; then
         log_warn "shellcheck not found; skipped"
         return 0
     fi
@@ -438,11 +503,13 @@ check_shellcheck_if_available() {
         "$REPO_ROOT"/scripts/validate \
         "$REPO_ROOT"/scripts/lib/*.sh \
         "$REPO_ROOT"/installers/install-* \
+        "$REPO_ROOT"/installers/configure-themes \
         "$REPO_ROOT"/installers/lib/*.sh \
-        "$REPO_ROOT"/custom-themes/builders/theme-build* \
+        "$REPO_ROOT"/custom-configs/Themes/builders/theme-build* \
         "$REPO_ROOT"/custom-configs/Polybar/scripts/*.sh \
         "$REPO_ROOT"/custom-configs/I3/scripts/* \
-        "$REPO_ROOT"/custom-configs/XDG/bin/*
+        "$REPO_ROOT"/custom-tweaks/file-associations/set-file-extensions \
+        "$REPO_ROOT"/custom-tweaks/cursor-hardening/Xresources-merge.sh
 }
 
 cd "$REPO_ROOT"
@@ -450,13 +517,13 @@ cd "$REPO_ROOT"
 run_check "Shell syntax" check_shell_syntax
 run_check "Zsh config" check_zsh_config
 run_check "Theme builder dry run" check_theme_builder
-run_check "Installer dry run" check_installer_dry_run
-run_check "GTK bookmarks config" check_gtk_bookmarks
-run_check "File associations config" check_file_associations_config
+run_check "install-configs dry run" check_install_configs_dry_run
 run_check "i3 reload/restart routing" check_i3_reload_restart
-run_check "Drive automount config" check_drive_automounts
+run_check "Tweak sources" check_tweak_sources
+run_check "install-tweaks picker routing" check_install_tweaks_picker
 run_check "Package manifests" check_package_manifests
-run_check "Package installer routing" check_package_installer_routing
+run_check "install-packages picker routing" check_package_installer_picker
+run_check "configure-themes routing" check_configure_themes
 run_check "Stale-name scan" check_stale_names
 run_check "Dunst config parse" check_dunst_config
 run_check "Polybar smoke tests" check_polybar_smoke

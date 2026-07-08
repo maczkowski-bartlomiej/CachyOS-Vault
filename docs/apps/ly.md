@@ -8,7 +8,7 @@ Repo managed XSession: custom-configs/Ly/xsessions/i3.desktop
 Generated target: ~/.config/custom-themes/ly-config.ini
 Installed target: /etc/ly/config.ini
 Installed XSession target: /etc/ly/xsessions/i3.desktop
-Builder: custom-themes/builders/theme-build-ly
+Builder: custom-configs/Themes/builders/theme-build-ly
 ```
 
 ## Runtime Notes

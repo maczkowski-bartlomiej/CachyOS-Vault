@@ -7,7 +7,7 @@ Repo config: custom-configs/Dunst/dunstrc
 Install target: ~/.config/dunst/dunstrc
 Generated theme: ~/.config/custom-themes/dunst-theme.dunstrc
 Theme drop-in: ~/.config/dunst/dunstrc.d/90-vault-theme.conf
-Builder: custom-themes/builders/theme-build-dunst
+Builder: custom-configs/Themes/builders/theme-build-dunst
 ```
 
 ## Behavior

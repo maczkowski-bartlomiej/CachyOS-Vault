@@ -6,7 +6,7 @@
 Repo config: custom-configs/Rofi/config.rasi
 Install target: ~/.config/rofi/config.rasi
 Generated theme: ~/.config/custom-themes/rofi-theme.rasi
-Builder: custom-themes/builders/theme-build-rofi
+Builder: custom-configs/Themes/builders/theme-build-rofi
 ```
 
 The config imports the generated theme with:

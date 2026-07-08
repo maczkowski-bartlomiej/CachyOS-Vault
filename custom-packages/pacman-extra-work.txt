@@ -1,0 +1,4 @@
+bitwarden
+brave-origin-bin
+nextcloud-client
+proton-mail-bin

@@ -3,7 +3,7 @@
 ## Files
 
 ```text
-Repo source: custom-configs/System/fstab-drive-automounts
+Repo source: custom-tweaks/drive-automounts/fstab-drive-automounts
 Install target: managed CachyOS-Vault block in /etc/fstab
 Mount targets: /mnt/dev, /mnt/dev-data, /mnt/data-hdd
 ```

@@ -3,7 +3,7 @@
 ## Files
 
 ```text
-Repo source: custom-themes/wallpaper/wallpaper.jpg
+Repo source: custom-configs/Themes/wallpaper/wallpaper.jpg
 Install target: ~/.config/i3/wallpaper.jpg
 ```
 

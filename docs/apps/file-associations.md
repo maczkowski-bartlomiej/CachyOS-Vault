@@ -3,7 +3,7 @@
 ## Files
 
 ```text
-MIME helper source: custom-configs/XDG/bin/set-file-extensions
+MIME helper source: custom-tweaks/file-associations/set-file-extensions
 MIME helper target: ~/.local/bin/set-file-extensions
 ```
 

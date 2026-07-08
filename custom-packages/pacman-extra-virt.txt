@@ -1,0 +1,4 @@
+dnsmasq
+libvirt
+swtpm
+virt-manager
