@@ -25,3 +25,5 @@ xorg-xsetroot
 xorg-xwininfo
 zoxide
 zsh
+yay
+shellcheck

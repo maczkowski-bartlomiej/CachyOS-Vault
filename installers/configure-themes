@@ -16,7 +16,6 @@ GTK theme: Orchis-Dark
 Icon theme: Papirus-Dark
 Cursor theme: Bibata-Modern-Ice
 Font: Inter 11
-Monospace font: JetBrainsMono Nerd Font 10
 Qt style: Kvantum
 Kvantum theme: Orchis-solidDark
 SETTINGS
@@ -42,6 +41,6 @@ run_theme_tool() {
 
 print_settings
 run_theme_tool nwg-look
+run_theme_tool kvantummanager
 run_theme_tool qt5ct
 run_theme_tool qt6ct
-run_theme_tool kvantummanager
