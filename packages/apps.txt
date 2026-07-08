@@ -3,8 +3,11 @@ thunar
 zen-browser-bin
 steam
 wine
+wine-mono
 lutris
 gamescope
-vlc
+gamemode
 audacity
 qbittorrent
+openai-codex
+mpv
