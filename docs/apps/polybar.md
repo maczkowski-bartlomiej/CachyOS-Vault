@@ -38,7 +38,6 @@ notification-history.sh: Dunst history icon; left-click opens Rofi history and c
 power-menu.sh: Rofi power menu
 polybar-runtime.sh: shared runtime formatting/color helper for Polybar scripts
 polybar-script-lib.sh: shared loader/helper sourced by module scripts
-shortcuts.sh: app/folder shortcut icons
 weather-openmeteo.sh: weather module using Open-Meteo
 ```
 

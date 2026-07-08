@@ -52,7 +52,7 @@ T_ICON_XL="%{T5}"
 T_ICON_LG="%{T5}"
 T_ICON_MD="%{T6}"
 T_ICON_SM="%{T7}"
-T_MUSIC_TEXT="%{T7}"
+T_MUSIC_TEXT="%{T8}"
 T_RESET="%{T-}"
 
 F_RESET="%{F-}"

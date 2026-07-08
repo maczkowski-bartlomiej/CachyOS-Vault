@@ -100,3 +100,4 @@ if command -v oh-my-posh > /dev/null 2>&1 && [[ -r "$OMP_CONFIG" ]]; then
 else
     vault_fallback_prompt
 fi
+[ -f "$HOME/.config/env/session-env.sh" ] && . "$HOME/.config/env/session-env.sh"

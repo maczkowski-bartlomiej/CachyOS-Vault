@@ -43,7 +43,16 @@ For a narrower run, pass one or more groups:
 installers/install-packages --core --apps --aur --flatpak
 ```
 
-`installers/install-packages` uses `pacman` for `packages/core.txt` and `packages/apps.txt`, `paru` or `yay` for `packages/aur.txt`, and `flatpak` for `packages/flatpak.txt`. Flatpak installation uses a user `flathub` remote when available, otherwise a system `flathub` remote.
+`installers/install-packages` uses Shelly by default when `shelly` is installed, so Shelly can show its package and optional dependency prompts. Without Shelly, it falls back to `pacman` for `packages/core.txt` and `packages/apps.txt`, `paru` or `yay` for `packages/aur.txt`, and `flatpak` for `packages/flatpak.txt`.
+
+Flatpak installs default to user scope. The installer adds the user `flathub` remote first when it is missing, then installs Flatpak apps from that remote.
+
+Force a specific package installer mode:
+
+```bash
+installers/install-packages --manager shelly
+installers/install-packages --manager legacy
+```
 
 Install all configs:
 
@@ -76,6 +85,7 @@ Per-app notes live under `docs/apps/`.
 I3 helper scripts are installed from `custom-configs/I3/scripts/*`; volume OSD state is kept under `${XDG_RUNTIME_DIR:-/tmp}/cachyos-vault`.
 Rofi is launched through `~/.config/i3/scripts/rofi-launcher` so Flatpak desktop entries are visible in `drun`.
 Drive automounts are sourced from `custom-configs/System/fstab-drive-automounts` and installed as a managed `/etc/fstab` block.
-Thunar Places entries for those drives are sourced from `custom-configs/GTK/bookmarks`.
+GTK file chooser bookmarks for those drives are sourced from `custom-configs/GTK/bookmarks`.
+Managed file associations set text files to Gedit, folders to Double Commander, and archives to File Roller.
 Zsh is installed from `custom-configs/Zsh/.zshrc` with an Oh My Posh prompt from `custom-configs/Zsh/oh-my-posh/cachyos-compact.omp.json`.
-Gaming environment variables are installed from `custom-configs/Environment/90-gaming.conf` to `~/.config/environment.d/90-gaming.conf`.
+Session environment variables are installed from `custom-configs/Environment/session-env.sh` to `~/.config/env/session-env.sh`, with `.xprofile` and GTK/Qt/Kvantum toolkit defaults keeping app fonts on Inter 11.

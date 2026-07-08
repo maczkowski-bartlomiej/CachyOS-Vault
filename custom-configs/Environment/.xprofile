@@ -1,0 +1,1 @@
+[ -f "$HOME/.config/env/session-env.sh" ] && . "$HOME/.config/env/session-env.sh"

@@ -26,6 +26,7 @@ VAULT_CONFIG_GROUPS=(
     picom
     nwg-look
     gtk-bookmarks
+    file-associations
     cursor-hardening
     wallpaper
     i3-scripts

@@ -35,7 +35,7 @@ check_shell_syntax() {
         find "$REPO_ROOT" \
             -path "$REPO_ROOT/.git" -prune -o \
             -type f \
-            \( -name '*.sh' -o -path '*/scripts/*' -o -path '*/builders/*' -o -path '*/installers/*' \) \
+            \( -name '*.sh' -o -path '*/scripts/*' -o -path '*/builders/*' -o -path '*/installers/*' -o -path '*/bin/*' \) \
             -print
     )
 }
@@ -112,9 +112,28 @@ check_installer_dry_run() {
     test -f "$tmp_home/.zshrc"
     test -f "$tmp_home/.config/oh-my-posh/cachyos-compact.omp.json"
     ! rg -n 'p10k-instant|\.p10k|source .*powerlevel10k|cachyos-zsh-config' "$tmp_home/.zshrc"
-    test -f "$tmp_home/.config/environment.d/90-gaming.conf"
-    rg -q '^__GL_SHADER_DISK_CACHE=1$' "$tmp_home/.config/environment.d/90-gaming.conf"
-    rg -q '^__GL_SHADER_DISK_CACHE_SIZE=12000000000$' "$tmp_home/.config/environment.d/90-gaming.conf"
+    test -f "$tmp_home/.config/env/session-env.sh"
+    test -f "$tmp_home/.xprofile"
+    ! test -e "$tmp_home/.config/environment.d/90-gaming.conf"
+    rg -q '^export QT_QPA_PLATFORMTHEME=qt6ct$' "$tmp_home/.config/env/session-env.sh"
+    rg -q '^export QT_STYLE_OVERRIDE=kvantum$' "$tmp_home/.config/env/session-env.sh"
+    rg -q '^export __GL_SHADER_DISK_CACHE=1$' "$tmp_home/.config/env/session-env.sh"
+    rg -q '^export __GL_SHADER_DISK_CACHE_SIZE=12000000000$' "$tmp_home/.config/env/session-env.sh"
+    rg -q '\.config/env/session-env\.sh' "$tmp_home/.xprofile"
+    test -f "$tmp_home/.config/gtk-3.0/settings.ini"
+    test -f "$tmp_home/.config/gtk-4.0/settings.ini"
+    test -f "$tmp_home/.gtkrc-2.0"
+    test -f "$tmp_home/.config/qt5ct/qt5ct.conf"
+    test -f "$tmp_home/.config/qt6ct/qt6ct.conf"
+    test -f "$tmp_home/.config/Kvantum/kvantum.kvconfig"
+    rg -q '^gtk-font-name=Inter 11$' "$tmp_home/.config/gtk-3.0/settings.ini"
+    rg -q '^gtk-font-name=Inter 11$' "$tmp_home/.config/gtk-4.0/settings.ini"
+    rg -q '^gtk-font-name="Inter 11"$' "$tmp_home/.gtkrc-2.0"
+    rg -q '^general="Inter,11,' "$tmp_home/.config/qt5ct/qt5ct.conf"
+    rg -q '^general="Inter,11,' "$tmp_home/.config/qt6ct/qt6ct.conf"
+    rg -q '^style=kvantum$' "$tmp_home/.config/qt5ct/qt5ct.conf"
+    rg -q '^style=kvantum$' "$tmp_home/.config/qt6ct/qt6ct.conf"
+    rg -q '^theme=Orchis-solidDark$' "$tmp_home/.config/Kvantum/kvantum.kvconfig"
     test -f "$tmp_home/.config/micro/settings.json"
     test -f "$tmp_home/.config/micro/colorschemes/orchis-dark.micro"
     test -f "$tmp_home/.config/picom/picom.conf"
@@ -123,6 +142,77 @@ check_installer_dry_run() {
     rg -q '^file:///mnt/dev Dev$' "$tmp_home/.config/gtk-3.0/bookmarks"
     rg -q '^file:///mnt/dev-data Dev Data$' "$tmp_home/.config/gtk-3.0/bookmarks"
     rg -q '^file:///mnt/data-hdd Data HDD$' "$tmp_home/.config/gtk-3.0/bookmarks"
+    test -x "$tmp_home/.local/bin/set-file-extensions"
+    test ! -e "$tmp_home/.local/bin/archive-smart-extract"
+    test ! -e "$tmp_home/.local/share/applications/archive-smart-extract.desktop"
+    test ! -e "$tmp_home/.local/share/applications/nvim-alacritty.desktop"
+    if command_exists gio; then
+        HOME="$tmp_home" gio mime application/zip | rg -q 'Default application.*org\.gnome\.FileRoller\.desktop'
+        HOME="$tmp_home" gio mime text/plain | rg -q 'Default application.*org\.gnome\.gedit\.desktop'
+        HOME="$tmp_home" gio mime application/json | rg -q 'Default application.*org\.gnome\.gedit\.desktop'
+        HOME="$tmp_home" gio mime inode/directory | rg -q 'Default application.*doublecmd\.desktop'
+    fi
+    rg -q '^application/zip=org\.gnome\.FileRoller\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^text/plain=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^application/json=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^inode/directory=doublecmd\.desktop' "$tmp_home/.config/mimeapps.list"
+    ! rg -q '^text/html=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+
+    rm -rf "$tmp_home"
+    trap - RETURN
+}
+
+check_file_associations_config() {
+    local set_extensions="$REPO_ROOT/custom-configs/XDG/bin/set-file-extensions"
+    local tmp_home
+
+    require_file "$set_extensions"
+    test -x "$set_extensions"
+    ! rg -n '/home/lysy|nvim|thunar|archive-smart-extract' "$set_extensions"
+    rg -q '^TEXT_DESKTOP=.*org\.gnome\.gedit\.desktop' "$set_extensions"
+    rg -q '^FILES_DESKTOP=.*doublecmd\.desktop' "$set_extensions"
+    rg -q '^ARCHIVE_DESKTOP=.*org\.gnome\.FileRoller\.desktop' "$set_extensions"
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+    HOME="$tmp_home" "$set_extensions" --managed
+
+    rg -q '^text/plain=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^application/json=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^inode/directory=doublecmd\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^application/zip=org\.gnome\.FileRoller\.desktop' "$tmp_home/.config/mimeapps.list"
+    ! rg -q '^text/html=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+
+    rm -rf "$tmp_home"
+    trap - RETURN
+}
+
+check_i3_reload_restart() {
+    local tmp_home tmp_bin log_file
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+    tmp_bin="$tmp_home/bin"
+    log_file="$tmp_home/i3.log"
+    install -d "$tmp_bin"
+    : > "$log_file"
+
+    cat > "$tmp_bin/i3-msg" <<'STUB'
+#!/usr/bin/env bash
+printf 'i3-msg' >> "$VAULT_COMMAND_LOG"
+printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
+printf '\n' >> "$VAULT_COMMAND_LOG"
+STUB
+    chmod +x "$tmp_bin/i3-msg"
+
+    PATH="$tmp_bin:$PATH" HOME="$tmp_home" REPO_ROOT="$REPO_ROOT" VAULT_COMMAND_LOG="$log_file" bash -c '
+        set -euo pipefail
+        source "$REPO_ROOT/installers/lib/install-lib.sh"
+        reload_i3
+    '
+
+    test "$(sed -n '1p' "$log_file")" = "i3-msg reload"
+    test "$(sed -n '2p' "$log_file")" = "i3-msg restart"
 
     rm -rf "$tmp_home"
     trap - RETURN
@@ -182,11 +272,105 @@ check_package_manifests() {
     done
 
     rg -q '^btrfs-progs$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^inter-font$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^kvantum$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^kvantum-qt5$' "$REPO_ROOT/packages/core.txt"
     rg -q '^oh-my-zsh-git$' "$REPO_ROOT/packages/core.txt"
     rg -q '^pacman-contrib$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^qt5ct$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^qt6ct$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^xdg-utils$' "$REPO_ROOT/packages/core.txt"
     rg -q '^zsh$' "$REPO_ROOT/packages/core.txt"
+    rg -q '^doublecmd-qt5$' "$REPO_ROOT/packages/apps.txt"
+    rg -q '^file-roller$' "$REPO_ROOT/packages/apps.txt"
+    rg -q '^gedit$' "$REPO_ROOT/packages/apps.txt"
+    ! rg -q '^neovim$' "$REPO_ROOT/packages/apps.txt"
+    ! rg -q '^thunar$' "$REPO_ROOT/packages/apps.txt"
     rg -q '^betterlockscreen$' "$REPO_ROOT/packages/aur.txt"
     rg -q '^oh-my-posh-bin$' "$REPO_ROOT/packages/aur.txt"
+    rg -q '^plasma6-themes-orchis-kde-git$' "$REPO_ROOT/packages/aur.txt"
+}
+
+check_package_installer_routing() {
+    local tmp_home tmp_bin log_file
+
+    tmp_home="$(mktemp -d)"
+    trap 'rm -rf "$tmp_home"' RETURN
+    tmp_bin="$tmp_home/bin"
+    log_file="$tmp_home/commands.log"
+    install -d "$tmp_bin"
+    : > "$log_file"
+
+    cat > "$tmp_bin/shelly" <<'STUB'
+#!/usr/bin/env bash
+printf 'shelly' >> "$VAULT_COMMAND_LOG"
+printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
+printf '\n' >> "$VAULT_COMMAND_LOG"
+STUB
+
+    cat > "$tmp_bin/pacman" <<'STUB'
+#!/usr/bin/env bash
+printf 'pacman' >> "$VAULT_COMMAND_LOG"
+printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
+printf '\n' >> "$VAULT_COMMAND_LOG"
+STUB
+
+    cat > "$tmp_bin/paru" <<'STUB'
+#!/usr/bin/env bash
+printf 'paru' >> "$VAULT_COMMAND_LOG"
+printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
+printf '\n' >> "$VAULT_COMMAND_LOG"
+STUB
+
+    cat > "$tmp_bin/sudo" <<'STUB'
+#!/usr/bin/env bash
+printf 'sudo' >> "$VAULT_COMMAND_LOG"
+printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
+printf '\n' >> "$VAULT_COMMAND_LOG"
+"$@"
+STUB
+
+    cat > "$tmp_bin/flatpak" <<'STUB'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "remotes" ]]; then
+    exit 0
+fi
+printf 'flatpak' >> "$VAULT_COMMAND_LOG"
+printf ' %s' "$@" >> "$VAULT_COMMAND_LOG"
+printf '\n' >> "$VAULT_COMMAND_LOG"
+STUB
+
+    chmod +x "$tmp_bin/shelly" "$tmp_bin/pacman" "$tmp_bin/paru" "$tmp_bin/sudo" "$tmp_bin/flatpak"
+
+    PATH="$tmp_bin:$PATH" HOME="$tmp_home" DISPLAY=:99 VAULT_COMMAND_LOG="$log_file" \
+        VAULT_PACKAGE_MANAGER=shelly "$REPO_ROOT/installers/install-packages" --core --apps
+    rg -q '^shelly install .*brightnessctl' "$log_file"
+    rg -q '^shelly install .*bitwarden' "$log_file"
+    ! rg -q -- '--ui-mode' "$log_file"
+
+    : > "$log_file"
+    PATH="$tmp_bin:$PATH" HOME="$tmp_home" DISPLAY=:99 VAULT_COMMAND_LOG="$log_file" \
+        VAULT_PACKAGE_MANAGER=shelly-ui "$REPO_ROOT/installers/install-packages" --aur
+    rg -q '^shelly aur install .*betterlockscreen' "$log_file"
+    ! rg -q -- '--ui-mode' "$log_file"
+
+    : > "$log_file"
+    PATH="$tmp_bin:$PATH" HOME="$tmp_home" DISPLAY=:99 VAULT_COMMAND_LOG="$log_file" \
+        VAULT_PACKAGE_MANAGER=shelly "$REPO_ROOT/installers/install-packages" --flatpak
+    rg -q '^flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo$' "$log_file"
+    rg -q '^shelly flatpak install com.super_productivity.SuperProductivity --user -r flathub$' "$log_file"
+    ! rg -q -- '--ui-mode' "$log_file"
+
+    : > "$log_file"
+    PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
+        VAULT_PACKAGE_MANAGER=legacy VAULT_AUR_HELPER=paru "$REPO_ROOT/installers/install-packages" --core --aur --flatpak
+    rg -q '^pacman -S --needed .*brightnessctl' "$log_file"
+    rg -q '^paru -S --needed .*betterlockscreen' "$log_file"
+    rg -q '^flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo$' "$log_file"
+    rg -q '^flatpak install -y --user flathub .*com.github.marktext.marktext' "$log_file"
+
+    rm -rf "$tmp_home"
+    trap - RETURN
 }
 
 check_stale_names() {
@@ -195,6 +379,11 @@ check_stale_names() {
         -g '!*.jpg' \
         -g '!*.png'
     ! rg -n 'screenshot-current-monito([^r]|$)' "$REPO_ROOT/custom-configs" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
+        -g '!*.jpg' \
+        -g '!*.png'
+    ! rg -n 'Thunar|thunar|nvim-alacritty|archive-smart-extract|neovim' \
+        "$REPO_ROOT/custom-configs" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
+        "$REPO_ROOT/packages" "$REPO_ROOT/scripts/lib" \
         -g '!*.jpg' \
         -g '!*.png'
 }
@@ -252,7 +441,8 @@ check_shellcheck_if_available() {
         "$REPO_ROOT"/installers/lib/*.sh \
         "$REPO_ROOT"/custom-themes/builders/theme-build* \
         "$REPO_ROOT"/custom-configs/Polybar/scripts/*.sh \
-        "$REPO_ROOT"/custom-configs/I3/scripts/*
+        "$REPO_ROOT"/custom-configs/I3/scripts/* \
+        "$REPO_ROOT"/custom-configs/XDG/bin/*
 }
 
 cd "$REPO_ROOT"
@@ -262,8 +452,11 @@ run_check "Zsh config" check_zsh_config
 run_check "Theme builder dry run" check_theme_builder
 run_check "Installer dry run" check_installer_dry_run
 run_check "GTK bookmarks config" check_gtk_bookmarks
+run_check "File associations config" check_file_associations_config
+run_check "i3 reload/restart routing" check_i3_reload_restart
 run_check "Drive automount config" check_drive_automounts
 run_check "Package manifests" check_package_manifests
+run_check "Package installer routing" check_package_installer_routing
 run_check "Stale-name scan" check_stale_names
 run_check "Dunst config parse" check_dunst_config
 run_check "Polybar smoke tests" check_polybar_smoke

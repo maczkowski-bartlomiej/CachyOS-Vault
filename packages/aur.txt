@@ -1,4 +1,5 @@
 betterlockscreen
-oh-my-posh-bin
 bibata-cursor-theme
+oh-my-posh-bin
+plasma6-themes-orchis-kde-git
 tre-command-bin

@@ -1,0 +1,7 @@
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_STYLE_OVERRIDE=kvantum
+export __GL_SHADER_DISK_CACHE=1
+export __GL_SHADER_DISK_CACHE_SIZE=12000000000
+
+dbus-update-activation-environment --systemd QT_QPA_PLATFORMTHEME QT_STYLE_OVERRIDE __GL_SHADER_DISK_CACHE __GL_SHADER_DISK_CACHE_SIZE >/dev/null 2>&1 || true
+systemctl --user import-environment QT_QPA_PLATFORMTHEME QT_STYLE_OVERRIDE __GL_SHADER_DISK_CACHE __GL_SHADER_DISK_CACHE_SIZE >/dev/null 2>&1 || true

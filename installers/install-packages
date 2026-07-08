@@ -8,10 +8,12 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 source "$REPO_ROOT/scripts/lib/vault-lib.sh"
 
 MANIFEST_PACKAGES=()
+FLATPAK_SCOPE_ARGS=()
+SHELLY_FLATPAK_SCOPE_ARGS=()
 
 usage() {
     cat <<'USAGE'
-Usage: installers/install-packages [--all] [--pacman] [--core] [--apps] [--aur] [--flatpak]
+Usage: installers/install-packages [--all] [--pacman] [--core] [--apps] [--aur] [--flatpak] [--manager auto|shelly|legacy]
 
 With no flags, installs every package manifest in this order:
   core, apps, AUR, Flatpak
@@ -19,18 +21,21 @@ With no flags, installs every package manifest in this order:
 Options:
   --all       install every package manifest
   --pacman    install core and apps manifests
-  --core      install packages/core.txt with pacman
-  --apps      install packages/apps.txt with pacman
-  --aur       install packages/aur.txt with paru/yay
-  --flatpak   install packages/flatpak.txt with flatpak
+  --core      install packages/core.txt
+  --apps      install packages/apps.txt
+  --aur       install packages/aur.txt
+  --flatpak   install packages/flatpak.txt
+  --manager   package manager mode; defaults to auto
   -h, --help  show this help
 
 Environment:
+  VAULT_PACKAGE_MANAGER=auto|shelly|legacy
   VAULT_AUR_HELPER=paru|yay
   VAULT_SKIP_AUR=1
   VAULT_SKIP_FLATPAK=1
   VAULT_FLATPAK_REMOTE=flathub
-  VAULT_FLATPAK_SCOPE=auto|user|system|none
+  VAULT_FLATPAK_REMOTE_URL=https://dl.flathub.org/repo/flathub.flatpakrepo
+  VAULT_FLATPAK_SCOPE=user|system|none
 USAGE
 }
 
@@ -59,6 +64,45 @@ run_as_root() {
     fi
 }
 
+resolve_package_manager() {
+    local requested="${1:?manager required}"
+
+    case "$requested" in
+        auto)
+            if command_exists shelly; then
+                printf '%s\n' shelly
+            else
+                log_warn "Shelly not found; using legacy package installers"
+                printf '%s\n' legacy
+            fi
+            ;;
+        shelly|shelly-ui)
+            command_exists shelly || die "shelly is required for --manager $requested"
+            printf '%s\n' shelly
+            ;;
+        legacy)
+            printf '%s\n' legacy
+            ;;
+        *)
+            die "Package manager must be auto, shelly, or legacy"
+            ;;
+    esac
+}
+
+install_shelly_manifest() {
+    local label="${1:?label required}"
+    local manifest="${2:?manifest required}"
+
+    read_manifest "$manifest"
+    if ((${#MANIFEST_PACKAGES[@]} == 0)); then
+        log_warn "No $label packages listed in ${manifest#$REPO_ROOT/}"
+        return 0
+    fi
+
+    log_info "Installing $label packages from ${manifest#$REPO_ROOT/} with Shelly"
+    shelly install "${MANIFEST_PACKAGES[@]}"
+}
+
 install_pacman_manifest() {
     local label="${1:?label required}"
     local manifest="${2:?manifest required}"
@@ -71,6 +115,17 @@ install_pacman_manifest() {
 
     log_info "Installing $label packages from ${manifest#$REPO_ROOT/}"
     run_as_root pacman -S --needed "${MANIFEST_PACKAGES[@]}"
+}
+
+install_arch_manifest() {
+    local label="${1:?label required}"
+    local manifest="${2:?manifest required}"
+
+    if [[ "$PACKAGE_MANAGER" == "shelly" ]]; then
+        install_shelly_manifest "$label" "$manifest"
+    else
+        install_pacman_manifest "$label" "$manifest"
+    fi
 }
 
 detect_aur_helper() {
@@ -106,6 +161,32 @@ install_aur_manifest() {
     "$helper" -S --needed "${MANIFEST_PACKAGES[@]}"
 }
 
+install_shelly_aur_manifest() {
+    local manifest="$REPO_ROOT/packages/aur.txt"
+
+    if [[ -n "${VAULT_SKIP_AUR:-}" ]]; then
+        log_info "Skipped AUR packages because VAULT_SKIP_AUR is set"
+        return 0
+    fi
+
+    read_manifest "$manifest"
+    if ((${#MANIFEST_PACKAGES[@]} == 0)); then
+        log_warn "No AUR packages listed in ${manifest#$REPO_ROOT/}"
+        return 0
+    fi
+
+    log_info "Installing AUR packages from ${manifest#$REPO_ROOT/} with Shelly"
+    shelly aur install "${MANIFEST_PACKAGES[@]}"
+}
+
+install_aur_packages() {
+    if [[ "$PACKAGE_MANAGER" == "shelly" ]]; then
+        install_shelly_aur_manifest
+    else
+        install_aur_manifest
+    fi
+}
+
 flatpak_remote_exists() {
     local scope="${1:?scope required}"
     local remote="${2:?remote required}"
@@ -118,32 +199,49 @@ flatpak_remote_exists() {
     return 1
 }
 
+ensure_flatpak_user_remote() {
+    local remote="${1:?remote required}"
+    local remote_url="${VAULT_FLATPAK_REMOTE_URL:-https://dl.flathub.org/repo/flathub.flatpakrepo}"
+
+    if flatpak_remote_exists user "$remote"; then
+        return 0
+    fi
+
+    log_info "Adding Flatpak user remote $remote"
+    flatpak remote-add --user --if-not-exists "$remote" "$remote_url"
+}
+
 resolve_flatpak_scope_args() {
     local remote="${1:?remote required}"
-    local scope="${VAULT_FLATPAK_SCOPE:-auto}"
+    local scope="${VAULT_FLATPAK_SCOPE:-user}"
 
     case "$scope" in
         auto)
             if flatpak_remote_exists user "$remote"; then
                 FLATPAK_SCOPE_ARGS=(--user)
+                SHELLY_FLATPAK_SCOPE_ARGS=(--user)
             elif flatpak_remote_exists system "$remote"; then
                 FLATPAK_SCOPE_ARGS=(--system)
+                SHELLY_FLATPAK_SCOPE_ARGS=()
             else
                 die "Flatpak remote not found: $remote. Add it or set VAULT_FLATPAK_REMOTE."
             fi
             ;;
         user)
-            flatpak_remote_exists user "$remote" || die "Flatpak user remote not found: $remote"
+            ensure_flatpak_user_remote "$remote"
             FLATPAK_SCOPE_ARGS=(--user)
+            SHELLY_FLATPAK_SCOPE_ARGS=(--user)
             ;;
         system)
             flatpak_remote_exists system "$remote" || die "Flatpak system remote not found: $remote"
             FLATPAK_SCOPE_ARGS=(--system)
+            SHELLY_FLATPAK_SCOPE_ARGS=()
             ;;
         none|"")
             FLATPAK_SCOPE_ARGS=()
+            SHELLY_FLATPAK_SCOPE_ARGS=()
             ;;
-        *) die "VAULT_FLATPAK_SCOPE must be auto, user, system, or none" ;;
+        *) die "VAULT_FLATPAK_SCOPE must be user, system, none, or auto" ;;
     esac
 }
 
@@ -170,10 +268,45 @@ install_flatpak_manifest() {
     flatpak install -y "${FLATPAK_SCOPE_ARGS[@]}" "$remote" "${MANIFEST_PACKAGES[@]}"
 }
 
+install_shelly_flatpak_manifest() {
+    local manifest="$REPO_ROOT/packages/flatpak.txt"
+    local remote="${VAULT_FLATPAK_REMOTE:-flathub}"
+    local package
+
+    if [[ -n "${VAULT_SKIP_FLATPAK:-}" ]]; then
+        log_info "Skipped Flatpak packages because VAULT_SKIP_FLATPAK is set"
+        return 0
+    fi
+
+    command_exists flatpak || die "flatpak is required to install ${manifest#$REPO_ROOT/}"
+
+    read_manifest "$manifest"
+    if ((${#MANIFEST_PACKAGES[@]} == 0)); then
+        log_warn "No Flatpak packages listed in ${manifest#$REPO_ROOT/}"
+        return 0
+    fi
+
+    resolve_flatpak_scope_args "$remote"
+
+    log_info "Installing Flatpak packages from ${manifest#$REPO_ROOT/} with Shelly"
+    for package in "${MANIFEST_PACKAGES[@]}"; do
+        shelly flatpak install "$package" "${SHELLY_FLATPAK_SCOPE_ARGS[@]}" -r "$remote"
+    done
+}
+
+install_flatpak_packages() {
+    if [[ "$PACKAGE_MANAGER" == "shelly" ]]; then
+        install_shelly_flatpak_manifest
+    else
+        install_flatpak_manifest
+    fi
+}
+
 install_core=0
 install_apps=0
 install_aur=0
 install_flatpak=0
+requested_manager="${VAULT_PACKAGE_MANAGER:-auto}"
 
 if (($# == 0)); then
     set -- --all
@@ -195,6 +328,14 @@ while (($# > 0)); do
         --apps) install_apps=1 ;;
         --aur) install_aur=1 ;;
         --flatpak) install_flatpak=1 ;;
+        --manager)
+            shift
+            (($# > 0)) || die "--manager requires auto, shelly, or legacy"
+            requested_manager="$1"
+            ;;
+        --manager=*)
+            requested_manager="${1#--manager=}"
+            ;;
         -h|--help)
             usage
             exit 0
@@ -204,18 +345,20 @@ while (($# > 0)); do
     shift
 done
 
+PACKAGE_MANAGER="$(resolve_package_manager "$requested_manager")"
+
 if ((install_core)); then
-    install_pacman_manifest core "$REPO_ROOT/packages/core.txt"
+    install_arch_manifest core "$REPO_ROOT/packages/core.txt"
 fi
 
 if ((install_apps)); then
-    install_pacman_manifest apps "$REPO_ROOT/packages/apps.txt"
+    install_arch_manifest apps "$REPO_ROOT/packages/apps.txt"
 fi
 
 if ((install_aur)); then
-    install_aur_manifest
+    install_aur_packages
 fi
 
 if ((install_flatpak)); then
-    install_flatpak_manifest
+    install_flatpak_packages
 fi

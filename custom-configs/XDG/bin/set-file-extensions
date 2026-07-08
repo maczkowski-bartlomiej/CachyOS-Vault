@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BROWSER_DESKTOP="${BROWSER_DESKTOP:-brave-origin.desktop}"
+IMAGE_DESKTOP="${IMAGE_DESKTOP:-viewnior.desktop}"
+MEDIA_DESKTOP="${MEDIA_DESKTOP:-mpv.desktop}"
+TEXT_DESKTOP="${TEXT_DESKTOP:-org.gnome.gedit.desktop}"
+MAIL_DESKTOP="${MAIL_DESKTOP:-proton-mail.desktop}"
+FILES_DESKTOP="${FILES_DESKTOP:-doublecmd.desktop}"
+ARCHIVE_DESKTOP="${ARCHIVE_DESKTOP:-org.gnome.FileRoller.desktop}"
+MIME_TYPES_FILE="${MIME_TYPES_FILE:-/usr/share/mime/types}"
+
+text_mime_types=(
+    application/ecmascript
+    application/json
+    application/json-patch+json
+    application/json5
+    application/toml
+    application/x-desktop
+    application/x-perl
+    application/x-php
+    application/xml
+    application/xml-dtd
+    application/xml-external-parsed-entity
+    application/yaml
+)
+
+archive_mime_types=(
+    application/bzip2
+    application/gzip
+    application/vnd.rar
+    application/x-7z-compressed
+    application/x-7z-compressed-tar
+    application/x-archive
+    application/x-arj
+    application/x-bzip
+    application/x-bzip-compressed-tar
+    application/x-compressed-tar
+    application/x-gzip
+    application/x-lzip
+    application/x-lzip-compressed-tar
+    application/x-lzma
+    application/x-lzma-compressed-tar
+    application/x-lzop
+    application/x-lzop-compressed-tar
+    application/x-rar
+    application/x-rar-compressed
+    application/x-tar
+    application/x-xz
+    application/x-xz-compressed-tar
+    application/x-zip
+    application/x-zip-compressed
+    application/x-zstd-compressed-tar
+    application/zip
+    application/zstd
+)
+
+usage() {
+    cat <<'USAGE'
+Usage: set-file-extensions [--all|--managed|--text-only|--archives-only|--text-and-archives]
+
+Sets XDG MIME defaults for the desktop session.
+
+Options:
+  --all                set browser, image, media, text, mail, file manager, and archive defaults
+  --managed            set managed text, folder, and archive defaults
+  --text-only          set text and editable source/config MIME defaults to org.gnome.gedit.desktop
+  --archives-only      set only archive MIME defaults to org.gnome.FileRoller.desktop
+  --text-and-archives  set text and archive MIME defaults
+  -h, --help           show this help
+
+Desktop IDs can be overridden with BROWSER_DESKTOP, IMAGE_DESKTOP,
+MEDIA_DESKTOP, TEXT_DESKTOP, MAIL_DESKTOP, FILES_DESKTOP, and ARCHIVE_DESKTOP.
+USAGE
+}
+
+ensure_xdg_config_home() {
+    local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+    mkdir -p "$config_home"
+}
+
+require_xdg_mime() {
+    if ! command -v xdg-mime >/dev/null 2>&1; then
+        printf 'set-file-extensions: xdg-mime is required\n' >&2
+        exit 127
+    fi
+
+    ensure_xdg_config_home
+}
+
+set_default() {
+    local desktop="${1:?desktop file required}"
+    local mime="${2:?mime type required}"
+
+    xdg-mime default "$desktop" "$mime"
+}
+
+set_gio_default() {
+    local desktop="${1:?desktop file required}"
+    local mime="${2:?mime type required}"
+
+    if ! command -v gio >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if ! gio mime "$mime" "$desktop" >/dev/null; then
+        printf 'set-file-extensions: gio could not set %s to %s\n' "$mime" "$desktop" >&2
+        return 1
+    fi
+}
+
+set_prefixed_defaults() {
+    local prefix="${1:?mime prefix required}"
+    local desktop="${2:?desktop file required}"
+    local sync_gio="${3:-}"
+    local mime
+
+    if [[ ! -r "$MIME_TYPES_FILE" ]]; then
+        printf 'set-file-extensions: MIME types file not readable: %s\n' "$MIME_TYPES_FILE" >&2
+        return 0
+    fi
+
+    while IFS= read -r mime || [[ -n "$mime" ]]; do
+        [[ "$mime" == "$prefix"* ]] || continue
+        [[ "$prefix" == "text/" && "$mime" == "text/html" ]] && continue
+        set_default "$desktop" "$mime"
+        if [[ "$sync_gio" == "--gio" ]]; then
+            set_gio_default "$desktop" "$mime"
+        fi
+    done < "$MIME_TYPES_FILE"
+}
+
+set_text_defaults() {
+    local mime
+
+    set_prefixed_defaults text/ "$TEXT_DESKTOP" --gio
+
+    for mime in "${text_mime_types[@]}"; do
+        set_default "$TEXT_DESKTOP" "$mime"
+        set_gio_default "$TEXT_DESKTOP" "$mime"
+    done
+}
+
+set_archive_defaults() {
+    local mime
+
+    for mime in "${archive_mime_types[@]}"; do
+        set_default "$ARCHIVE_DESKTOP" "$mime"
+        set_gio_default "$ARCHIVE_DESKTOP" "$mime"
+    done
+}
+
+set_file_defaults() {
+    set_default "$FILES_DESKTOP" inode/directory
+    set_gio_default "$FILES_DESKTOP" inode/directory
+}
+
+set_managed_defaults() {
+    set_text_defaults
+    set_file_defaults
+    set_archive_defaults
+}
+
+set_all_defaults() {
+    set_prefixed_defaults image/ "$IMAGE_DESKTOP"
+    set_prefixed_defaults video/ "$MEDIA_DESKTOP"
+    set_prefixed_defaults audio/ "$MEDIA_DESKTOP"
+    set_text_defaults
+
+    set_default "$BROWSER_DESKTOP" x-scheme-handler/http
+    set_default "$BROWSER_DESKTOP" x-scheme-handler/https
+    set_default "$BROWSER_DESKTOP" text/html
+    set_default "$BROWSER_DESKTOP" application/xhtml+xml
+    set_default "$BROWSER_DESKTOP" application/pdf
+
+    set_default "$MAIL_DESKTOP" x-scheme-handler/mailto
+    set_file_defaults
+    set_archive_defaults
+}
+
+mode="${1:---all}"
+
+case "$mode" in
+    --all)
+        require_xdg_mime
+        set_all_defaults
+        ;;
+    --managed)
+        require_xdg_mime
+        set_managed_defaults
+        ;;
+    --text-only)
+        require_xdg_mime
+        set_text_defaults
+        ;;
+    --archives-only)
+        require_xdg_mime
+        set_archive_defaults
+        ;;
+    --text-and-archives)
+        require_xdg_mime
+        set_text_defaults
+        set_archive_defaults
+        ;;
+    -h|--help)
+        usage
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac

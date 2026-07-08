@@ -145,7 +145,15 @@ install_zsh() {
 }
 
 install_environment() {
-    copy_file "$REPO_ROOT/custom-configs/Environment/90-gaming.conf" "$HOME/.config/environment.d/90-gaming.conf"
+    copy_file "$REPO_ROOT/custom-configs/Environment/session-env.sh" "$HOME/.config/env/session-env.sh"
+    copy_file "$REPO_ROOT/custom-configs/Environment/.xprofile" "$HOME/.xprofile"
+    copy_file "$REPO_ROOT/custom-configs/GTK/settings-3.ini" "$HOME/.config/gtk-3.0/settings.ini"
+    copy_file "$REPO_ROOT/custom-configs/GTK/settings-4.ini" "$HOME/.config/gtk-4.0/settings.ini"
+    copy_file "$REPO_ROOT/custom-configs/GTK/gtkrc-2.0" "$HOME/.gtkrc-2.0"
+    copy_file "$REPO_ROOT/custom-configs/Qt/qt5ct.conf" "$HOME/.config/qt5ct/qt5ct.conf"
+    copy_file "$REPO_ROOT/custom-configs/Qt/qt6ct.conf" "$HOME/.config/qt6ct/qt6ct.conf"
+    copy_file "$REPO_ROOT/custom-configs/Kvantum/kvantum.kvconfig" "$HOME/.config/Kvantum/kvantum.kvconfig"
+    remove_stale_managed_file "$HOME/.config/environment.d/90-gaming.conf"
 }
 
 install_micro() {
@@ -205,8 +213,50 @@ install_gtk_bookmarks() {
     install_gtk_bookmark_file "$src" "$HOME/.config/gtk-4.0/bookmarks"
 }
 
+remove_stale_managed_file() {
+    local path="${1:?path required}"
+
+    if [[ -e "$path" || -L "$path" ]]; then
+        rm -f "$path"
+        log_ok "Removed stale managed file $path"
+    fi
+}
+
+install_file_associations() {
+    copy_executable "$REPO_ROOT/custom-configs/XDG/bin/set-file-extensions" "$HOME/.local/bin/set-file-extensions"
+    ensure_dir "$HOME/.local/share/applications"
+    remove_stale_managed_file "$HOME/.local/bin/archive-smart-extract"
+    remove_stale_managed_file "$HOME/.local/share/applications/archive-smart-extract.desktop"
+    remove_stale_managed_file "$HOME/.local/share/applications/nvim-alacritty.desktop"
+    refresh_desktop_database
+    apply_managed_mime_defaults
+}
+
 install_wallpaper() {
     copy_file "$REPO_ROOT/custom-themes/wallpaper/wallpaper.jpg" "$HOME/.config/i3/wallpaper.jpg"
+}
+
+refresh_desktop_database() {
+    if command_exists update-desktop-database; then
+        if update-desktop-database "$HOME/.local/share/applications"; then
+            log_ok "Updated desktop application cache"
+        else
+            log_warn "Desktop application cache update failed; continuing"
+        fi
+    else
+        log_warn "update-desktop-database not found; skipped desktop application cache update"
+    fi
+}
+
+apply_managed_mime_defaults() {
+    if [[ -n "${VAULT_SKIP_MIME_DEFAULTS:-}" ]]; then
+        log_info "Skipped managed MIME defaults because VAULT_SKIP_MIME_DEFAULTS is set"
+    elif command_exists xdg-mime; then
+        "$HOME/.local/bin/set-file-extensions" --managed
+        log_ok "Set text MIME defaults to Gedit, folder defaults to Double Commander, and archive defaults to File Roller"
+    else
+        log_warn "xdg-mime not found; managed MIME defaults were not changed"
+    fi
 }
 
 reload_systemd_if_safe() {
@@ -333,22 +383,32 @@ run_nwg_look() {
 
 reload_i3() {
     if [[ -n "${VAULT_SKIP_RELOAD:-}" ]]; then
-        log_info "Skipped i3 reload because VAULT_SKIP_RELOAD is set"
+        log_info "Skipped i3 reload/restart because VAULT_SKIP_RELOAD is set"
         return 1
     elif command_exists i3-msg; then
         if command_exists timeout; then
             if timeout 5s i3-msg reload >/dev/null; then
                 log_ok "Reloaded i3"
-                return 0
+                if timeout 5s i3-msg restart >/dev/null; then
+                    log_ok "Restarted i3"
+                    return 0
+                fi
+                log_warn "i3 restart did not complete cleanly; continuing"
+                return 1
             fi
         elif i3-msg reload >/dev/null; then
             log_ok "Reloaded i3"
-            return 0
+            if i3-msg restart >/dev/null; then
+                log_ok "Restarted i3"
+                return 0
+            fi
+            log_warn "i3 restart did not complete cleanly; continuing"
+            return 1
         fi
         log_warn "i3 reload did not complete cleanly; continuing"
         return 1
     else
-        log_warn "i3-msg not found; skipped i3 reload"
+        log_warn "i3-msg not found; skipped i3 reload/restart"
         return 1
     fi
 }
@@ -443,6 +503,7 @@ install_app_config() {
             ;;
         nwg-look) install_nwg_look_config ;;
         gtk-bookmarks) install_gtk_bookmarks ;;
+        file-associations) install_file_associations ;;
         cursor-hardening) apply_cursor_hardening ;;
         wallpaper) install_wallpaper ;;
         drive-automounts) install_drive_automounts ;;
@@ -473,12 +534,13 @@ install_all_configs() {
     install_picom
     install_nwg_look_config
     install_gtk_bookmarks
+    install_file_associations
     install_wallpaper
     install_drive_automounts
     apply_system_tweaks
     apply_cursor_hardening
     if reload_i3; then
-        log_info "Skipped direct Polybar reload because i3 reload runs Polybar launch"
+        log_info "Skipped direct Polybar reload because i3 reload/restart runs Polybar launch"
     else
         reload_polybar
     fi
