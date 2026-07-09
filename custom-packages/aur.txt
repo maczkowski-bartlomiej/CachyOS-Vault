@@ -1,5 +1,9 @@
-betterlockscreen
 bibata-cursor-theme
 oh-my-posh-bin
-plasma6-themes-orchis-kde-git
 tre-command-bin
+betterlockscreen
+plasma6-themes-orchis-kde-git
+
+jetbrains-toolbox
+
+
