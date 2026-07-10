@@ -42,14 +42,14 @@ STUB
 check_shell_syntax() {
     local file
 
-    while IFS= read -r file; do
+    while IFS= read -r -d '' file; do
         bash -n "$file"
     done < <(
         find "$REPO_ROOT" \
             -path "$REPO_ROOT/.git" -prune -o \
             -type f \
             \( -name '*.sh' -o -path '*/scripts/*' -o -path '*/builders/*' -o -path '*/installers/*' -o -path '*/bin/*' -o -path '*/custom-tweaks/*' \) \
-            -print
+            -print0
     )
 }
 
@@ -124,10 +124,10 @@ check_install_configs_dry_run() {
     test -f "$tmp_home/.config/alacritty/alacritty.toml"
     test -f "$tmp_home/.zshrc"
     test -f "$tmp_home/.config/oh-my-posh/cachyos-compact.omp.json"
-    ! rg -n 'p10k-instant|\.p10k|source .*powerlevel10k|cachyos-zsh-config' "$tmp_home/.zshrc"
+    rg -n 'p10k-instant|\.p10k|source .*powerlevel10k|cachyos-zsh-config' "$tmp_home/.zshrc" && die "Installed .zshrc leaked p10k/instant-prompt references"
     test -f "$tmp_home/.config/env/session-env.sh"
     test -f "$tmp_home/.xprofile"
-    ! test -e "$tmp_home/.config/environment.d/90-gaming.conf"
+    test -e "$tmp_home/.config/environment.d/90-gaming.conf" && die "Stale gaming environment drop-in was installed"
     rg -q '^export QT_QPA_PLATFORMTHEME=qt6ct$' "$tmp_home/.config/env/session-env.sh"
     rg -q '^export QT_STYLE_OVERRIDE=kvantum$' "$tmp_home/.config/env/session-env.sh"
     rg -q '^export __GL_SHADER_DISK_CACHE=1$' "$tmp_home/.config/env/session-env.sh"
@@ -152,9 +152,9 @@ check_install_configs_dry_run() {
     test -f "$tmp_home/.config/picom/picom.conf"
     test -f "$tmp_home/.config/nwg-look/config"
 
-    ! test -f "$tmp_home/.config/gtk-3.0/bookmarks"
-    ! test -x "$tmp_home/.local/bin/set-file-extensions"
-    ! test -f "$tmp_home/.icons/default/index.theme"
+    test -f "$tmp_home/.config/gtk-3.0/bookmarks" && die "install-configs must not install GTK bookmarks (tweak only)"
+    test -x "$tmp_home/.local/bin/set-file-extensions" && die "install-configs must not install file-associations helper (tweak only)"
+    test -f "$tmp_home/.icons/default/index.theme" && die "install-configs must not install cursor hardening (tweak only)"
 
     rm -rf "$tmp_home"
     trap - RETURN
@@ -191,7 +191,7 @@ check_tweak_sources() {
     src="$REPO_ROOT/custom-tweaks/file-associations/set-file-extensions"
     require_file "$src"
     test -x "$src"
-    ! rg -n '/home/lysy|nvim|thunar|archive-smart-extract' "$src"
+    rg -n '/home/lysy|nvim|thunar|archive-smart-extract' "$src" && die "set-file-extensions contains stale or hardcoded references"
     rg -q '^TEXT_DESKTOP=.*org\.gnome\.gedit\.desktop' "$src"
     rg -q '^FILES_DESKTOP=.*doublecmd\.desktop' "$src"
     rg -q '^ARCHIVE_DESKTOP=.*org\.gnome\.FileRoller\.desktop' "$src"
@@ -282,7 +282,7 @@ STUB
     rg -q '^application/json=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
     rg -q '^inode/directory=doublecmd\.desktop' "$tmp_home/.config/mimeapps.list"
     rg -q '^application/zip=org\.gnome\.FileRoller\.desktop' "$tmp_home/.config/mimeapps.list"
-    ! rg -q '^text/html=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list"
+    rg -q '^text/html=org\.gnome\.gedit\.desktop' "$tmp_home/.config/mimeapps.list" && die "text/html must not be mapped to the text editor"
     test -f "$tmp_home/.config/gtk-3.0/bookmarks"
     test -f "$tmp_home/.config/gtk-4.0/bookmarks"
     rg -q '^file:///mnt/dev Dev$' "$tmp_home/.config/gtk-3.0/bookmarks"
@@ -297,7 +297,7 @@ STUB
     : > "$log_file"
     printf '\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
         "$REPO_ROOT/installers/install-tweaks"
-    ! test -s "$log_file"
+    test -s "$log_file" && die "Canceling the tweak picker must not run commands"
 
     rm -rf "$tmp_home"
     trap - RETURN
@@ -308,7 +308,7 @@ check_package_manifests() {
 
     for file in "$REPO_ROOT"/custom-packages/*.txt; do
         LC_ALL=C sort -c "$file"
-        ! grep -n '^[[:space:]]*$\|[[:space:]]#' "$file"
+        rg -n '^[[:space:]]*$|[[:space:]]#' "$file" && die "Manifest has blank or inline-comment lines: $file"
     done
 
     rg -q '^alacritty$' "$REPO_ROOT/custom-packages/pacman-core-apps.txt"
@@ -371,7 +371,7 @@ STUB
     rg -q '^shelly aur install .*betterlockscreen' "$log_file"
     rg -q '^flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo$' "$log_file"
     rg -q '^shelly flatpak install com.super_productivity.SuperProductivity --user -r flathub$' "$log_file"
-    ! rg -q -- '--ui-mode' "$log_file"
+    rg -q -- '--ui-mode' "$log_file" && die "Shelly install must not pass --ui-mode"
 
     : > "$log_file"
     printf 'all\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
@@ -384,7 +384,7 @@ STUB
     : > "$log_file"
     printf '\n' | PATH="$tmp_bin:$PATH" HOME="$tmp_home" VAULT_COMMAND_LOG="$log_file" \
         VAULT_PACKAGE_MANAGER=shelly "$REPO_ROOT/installers/install-packages"
-    ! test -s "$log_file"
+    test -s "$log_file" && die "Canceling the package picker must not run commands"
 
     rm -rf "$tmp_home"
     trap - RETURN
@@ -422,22 +422,22 @@ check_configure_themes() {
 }
 
 check_stale_names() {
-    ! test -d "$REPO_ROOT/packages"
-    ! test -d "$REPO_ROOT/custom-themes"
-    ! find "$REPO_ROOT/custom-configs/Zsh" -name '.zcompdump*' -print | rg .
+    test -d "$REPO_ROOT/packages" && die "Stale packages/ directory present"
+    test -d "$REPO_ROOT/custom-themes" && die "Stale custom-themes/ directory present"
+    find "$REPO_ROOT/custom-configs/Zsh" -name '.zcompdump*' -print | rg . && die "Stale .zcompdump files present in Zsh config"
 
-    ! rg -n 'ytmusic\.sh|powermenu\.sh|polybar-theme\.sh' "$REPO_ROOT" \
+    rg -n 'ytmusic\.sh|powermenu\.sh|polybar-theme\.sh' "$REPO_ROOT" \
         -g '!scripts/validate' \
         -g '!*.jpg' \
-        -g '!*.png'
-    ! rg -n 'screenshot-current-monito([^r]|$)' "$REPO_ROOT/custom-configs" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
+        -g '!*.png' && die "Stale script names still referenced in repo"
+    rg -n 'screenshot-current-monito([^r]|$)' "$REPO_ROOT/custom-configs" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
         -g '!*.jpg' \
-        -g '!*.png'
-    ! rg -n 'Thunar|thunar|nvim-alacritty|archive-smart-extract|neovim' \
+        -g '!*.png' && die "Truncated screenshot-current-monitor reference found"
+    rg -n 'Thunar|thunar|nvim-alacritty|archive-smart-extract|neovim' \
         "$REPO_ROOT/custom-configs" "$REPO_ROOT/custom-tweaks" "$REPO_ROOT/README.md" "$REPO_ROOT/docs" \
         "$REPO_ROOT/custom-packages" "$REPO_ROOT/scripts/lib" \
         -g '!*.jpg' \
-        -g '!*.png'
+        -g '!*.png' && die "Stale app references (thunar/nvim/etc.) found"
     ! rg -n 'install-all-with-nwg-look|installers/install-all([^a-zA-Z0-9_-]|$)|packages/core\.txt|packages/apps\.txt' \
         "$REPO_ROOT/README.md" "$REPO_ROOT/docs" "$REPO_ROOT/installers" "$REPO_ROOT/scripts/lib" \
         -g '!*.jpg' \
@@ -499,7 +499,7 @@ check_shellcheck_if_available() {
         return 0
     fi
 
-    shellcheck \
+    shellcheck -x -e SC1091 \
         "$REPO_ROOT"/scripts/validate \
         "$REPO_ROOT"/scripts/lib/*.sh \
         "$REPO_ROOT"/installers/install-* \

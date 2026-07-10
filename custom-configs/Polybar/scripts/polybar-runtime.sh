@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# The color, glue-spacing, and font/format tokens defined below are consumed
+# indirectly by the other Polybar scripts that source this file (often via
+# indirect ${!var} expansion), so ShellCheck cannot see the usage here.
+# shellcheck disable=SC2034
+
 POLYBAR_CONFIG="${POLYBAR_CONFIG:-$HOME/.config/polybar/config.ini}"
 
 read_color() {

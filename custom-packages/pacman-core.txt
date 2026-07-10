@@ -16,6 +16,7 @@ polkit-gnome
 qt5ct
 qt6ct
 redshift
+shellcheck
 slop
 ttf-jetbrains-mono
 ttf-jetbrains-mono-nerd
@@ -23,7 +24,6 @@ xdg-utils
 xdotool
 xorg-xsetroot
 xorg-xwininfo
+yay
 zoxide
 zsh
-yay
-shellcheck

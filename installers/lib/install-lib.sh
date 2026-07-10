@@ -220,33 +220,36 @@ install_wallpaper() {
 install_gtk_bookmark_file() {
     local src="${1:?source required}"
     local dest="${2:?destination required}"
-    local line next tmp uri
+    local existing tmp
 
     require_file "$src"
     ensure_dir "$(dirname -- "$dest")"
 
-    tmp="$(mktemp)"
-    if [[ -f "$dest" ]]; then
-        cat "$dest" > "$tmp"
-    else
-        : > "$tmp"
-    fi
+    # Keep every existing bookmark whose URI is not managed by the vault, then
+    # append the managed bookmarks. A single awk pass keyed on all incoming URIs
+    # replaces the previous O(n^2) rewrite-per-source-line loop.
+    existing="$dest"
+    [[ -f "$dest" ]] || existing=/dev/null
 
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ -n "$line" ]] || continue
-        uri="${line%% *}"
-        next="$(mktemp)"
-        awk -v uri="$uri" '
-            {
-                split($0, fields, /[[:space:]]+/)
-                if (fields[1] != uri) {
-                    print
-                }
+    tmp="$(mktemp)"
+    awk '
+        NR == FNR {
+            if ($0 == "") { next }
+            uri = $1
+            line[uri] = $0
+            if (!(uri in seen)) {
+                order[++count] = uri
+                seen[uri] = 1
             }
-        ' "$tmp" > "$next"
-        mv "$next" "$tmp"
-        printf '%s\n' "$line" >> "$tmp"
-    done < "$src"
+            next
+        }
+        { if (!($1 in seen)) print }
+        END {
+            for (i = 1; i <= count; i++) {
+                print line[order[i]]
+            }
+        }
+    ' "$src" "$existing" > "$tmp"
 
     install -m 0644 "$tmp" "$dest"
     rm -f "$tmp"
@@ -433,6 +436,9 @@ apply_cursor_hardening() {
 expand_home_path() {
     local path="${1:?path required}"
 
+    # Intentionally match a literal "~/" prefix as read verbatim from a file;
+    # the tilde must not be shell-expanded here.
+    # shellcheck disable=SC2088
     if [[ "$path" == "~/"* ]]; then
         printf '%s/%s\n' "$HOME" "${path#"~/"}"
     else

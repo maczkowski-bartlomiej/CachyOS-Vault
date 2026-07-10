@@ -1,5 +1,9 @@
 # Orchis-Dark global palette
 # Source of truth. Edit this file, then run custom-configs/Themes/builders/theme-builder.
+#
+# Every color below is consumed indirectly by the theme builders via indirect
+# ${!var} expansion in theme-build-lib, so ShellCheck cannot see the usage here.
+# shellcheck disable=SC2034
 
 # Core surfaces from Orchis-Dark
 BG="#212121"

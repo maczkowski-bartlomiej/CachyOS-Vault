@@ -103,11 +103,11 @@ load_package_manifests() {
         PACKAGE_MANIFESTS+=("$PACKAGE_SOURCE_DIR/pacman-core-apps.txt")
     fi
 
-    while IFS= read -r manifest; do
+    while IFS= read -r -d '' manifest; do
         PACKAGE_MANIFESTS+=("$manifest")
     done < <(
         find "$PACKAGE_SOURCE_DIR" -maxdepth 1 -type f -name 'pacman-*.txt' \
-            ! -name 'pacman-core.txt' ! -name 'pacman-core-apps.txt' -print | LC_ALL=C sort
+            ! -name 'pacman-core.txt' ! -name 'pacman-core-apps.txt' -print0 | LC_ALL=C sort -z
     )
 
     if [[ -f "$PACKAGE_SOURCE_DIR/aur.txt" ]]; then
@@ -118,11 +118,11 @@ load_package_manifests() {
         PACKAGE_MANIFESTS+=("$PACKAGE_SOURCE_DIR/flatpak.txt")
     fi
 
-    while IFS= read -r manifest; do
+    while IFS= read -r -d '' manifest; do
         PACKAGE_MANIFESTS+=("$manifest")
     done < <(
         find "$PACKAGE_SOURCE_DIR" -maxdepth 1 -type f -name '*.txt' \
-            ! -name 'pacman-*.txt' ! -name 'aur.txt' ! -name 'flatpak.txt' -print | LC_ALL=C sort
+            ! -name 'pacman-*.txt' ! -name 'aur.txt' ! -name 'flatpak.txt' -print0 | LC_ALL=C sort -z
     )
 
     ((${#PACKAGE_MANIFESTS[@]} > 0)) || die "No package manifests found in custom-packages"
@@ -178,11 +178,11 @@ install_shelly_manifest() {
 
     read_manifest "$manifest"
     if ((${#MANIFEST_PACKAGES[@]} == 0)); then
-        log_warn "No $label packages listed in ${manifest#$REPO_ROOT/}"
+        log_warn "No $label packages listed in ${manifest#"$REPO_ROOT"/}"
         return 0
     fi
 
-    log_info "Installing $label packages from ${manifest#$REPO_ROOT/} with Shelly"
+    log_info "Installing $label packages from ${manifest#"$REPO_ROOT"/} with Shelly"
     shelly install "${MANIFEST_PACKAGES[@]}"
 }
 
@@ -192,11 +192,11 @@ install_pacman_manifest() {
 
     read_manifest "$manifest"
     if ((${#MANIFEST_PACKAGES[@]} == 0)); then
-        log_warn "No $label packages listed in ${manifest#$REPO_ROOT/}"
+        log_warn "No $label packages listed in ${manifest#"$REPO_ROOT"/}"
         return 0
     fi
 
-    log_info "Installing $label packages from ${manifest#$REPO_ROOT/}"
+    log_info "Installing $label packages from ${manifest#"$REPO_ROOT"/}"
     run_as_root pacman -S --needed "${MANIFEST_PACKAGES[@]}"
 }
 
@@ -235,12 +235,12 @@ install_aur_manifest() {
 
     read_manifest "$manifest"
     if ((${#MANIFEST_PACKAGES[@]} == 0)); then
-        log_warn "No AUR packages listed in ${manifest#$REPO_ROOT/}"
+        log_warn "No AUR packages listed in ${manifest#"$REPO_ROOT"/}"
         return 0
     fi
 
     helper="$(detect_aur_helper)"
-    log_info "Installing AUR packages from ${manifest#$REPO_ROOT/} with $helper"
+    log_info "Installing AUR packages from ${manifest#"$REPO_ROOT"/} with $helper"
     "$helper" -S --needed "${MANIFEST_PACKAGES[@]}"
 }
 
@@ -254,11 +254,11 @@ install_shelly_aur_manifest() {
 
     read_manifest "$manifest"
     if ((${#MANIFEST_PACKAGES[@]} == 0)); then
-        log_warn "No AUR packages listed in ${manifest#$REPO_ROOT/}"
+        log_warn "No AUR packages listed in ${manifest#"$REPO_ROOT"/}"
         return 0
     fi
 
-    log_info "Installing AUR packages from ${manifest#$REPO_ROOT/} with Shelly"
+    log_info "Installing AUR packages from ${manifest#"$REPO_ROOT"/} with Shelly"
     shelly aur install "${MANIFEST_PACKAGES[@]}"
 }
 
@@ -339,17 +339,17 @@ install_flatpak_manifest() {
         return 0
     fi
 
-    command_exists flatpak || die "flatpak is required to install ${manifest#$REPO_ROOT/}"
+    command_exists flatpak || die "flatpak is required to install ${manifest#"$REPO_ROOT"/}"
 
     read_manifest "$manifest"
     if ((${#MANIFEST_PACKAGES[@]} == 0)); then
-        log_warn "No Flatpak packages listed in ${manifest#$REPO_ROOT/}"
+        log_warn "No Flatpak packages listed in ${manifest#"$REPO_ROOT"/}"
         return 0
     fi
 
     resolve_flatpak_scope_args "$remote"
 
-    log_info "Installing Flatpak packages from ${manifest#$REPO_ROOT/}"
+    log_info "Installing Flatpak packages from ${manifest#"$REPO_ROOT"/}"
     flatpak install -y "${FLATPAK_SCOPE_ARGS[@]}" "$remote" "${MANIFEST_PACKAGES[@]}"
 }
 
@@ -363,17 +363,17 @@ install_shelly_flatpak_manifest() {
         return 0
     fi
 
-    command_exists flatpak || die "flatpak is required to install ${manifest#$REPO_ROOT/}"
+    command_exists flatpak || die "flatpak is required to install ${manifest#"$REPO_ROOT"/}"
 
     read_manifest "$manifest"
     if ((${#MANIFEST_PACKAGES[@]} == 0)); then
-        log_warn "No Flatpak packages listed in ${manifest#$REPO_ROOT/}"
+        log_warn "No Flatpak packages listed in ${manifest#"$REPO_ROOT"/}"
         return 0
     fi
 
     resolve_flatpak_scope_args "$remote"
 
-    log_info "Installing Flatpak packages from ${manifest#$REPO_ROOT/} with Shelly"
+    log_info "Installing Flatpak packages from ${manifest#"$REPO_ROOT"/} with Shelly"
     for package in "${MANIFEST_PACKAGES[@]}"; do
         shelly flatpak install "$package" "${SHELLY_FLATPAK_SCOPE_ARGS[@]}" -r "$remote"
     done
